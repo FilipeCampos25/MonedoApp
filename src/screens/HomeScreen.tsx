@@ -1,6 +1,23 @@
 import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { useState, useEffect } from "react";
 
-export default function HomeScreen() {
+export default function HomeScreen({ route }: any) {
+  const [activities, setActivities] = useState([
+    { title: "Prova de Matemática", date: "Amanhã", priority: "alta" },
+  ]);
+  useEffect(() => {
+  if (route?.params?.newItem) {
+    setActivities((prev) => {
+      const exists = prev.find(
+        (item) => item.title === route.params.newItem.title
+      );
+
+      if (exists) return prev;
+
+      return [...prev, route.params.newItem];
+    });
+  }
+}, [route?.params]);
   return (
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* TÍTULO */}
@@ -77,15 +94,7 @@ export default function HomeScreen() {
       <View style={styles.card}>
         <Text style={styles.sectionTitle}>Próximas Atividades</Text>
 
-        {[
-          { title: "Prova de Matemática", date: "Amanhã", priority: "alta" },
-          {
-            title: "Exercícios de Português",
-            date: "16 Mar",
-            priority: "media",
-          },
-          { title: "Leitura - História", date: "18 Mar", priority: "baixa" },
-        ].map((item, index) => (
+        {activities.map((item, index) => (
           <View key={index} style={styles.activityItem}>
             <View>
               <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
