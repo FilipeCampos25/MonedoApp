@@ -1,8 +1,8 @@
-import { View, Text, StyleSheet } from "react-native";
+import { View, Text, StyleSheet, ScrollView } from "react-native";
 
 export default function HomeScreen() {
   return (
-    <View style={styles.container}>
+    <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       {/* TÍTULO */}
       <Text style={styles.title}>Meus Estudos</Text>
 
@@ -96,7 +96,7 @@ export default function HomeScreen() {
           </View>
         ))}
       </View>
-    </View>
+    </ScrollView>
   );
 }
 const styles = StyleSheet.create({
