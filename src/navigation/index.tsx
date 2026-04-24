@@ -1,9 +1,18 @@
 import { NavigationContainer } from "@react-navigation/native";
 import { createBottomTabNavigator } from "@react-navigation/bottom-tabs";
 import { Ionicons } from "@expo/vector-icons";
+import { View, Text } from "react-native";
 
 import HomeScreen from "../screens/HomeScreen";
 import CreateScreen from "../screens/CreateScreen";
+
+function MetasScreen() {
+  return (
+    <View style={{ flex: 1, justifyContent: "center", alignItems: "center" }}>
+      <Text>Metas (em breve)</Text>
+    </View>
+  );
+}
 
 const Tab = createBottomTabNavigator();
 
@@ -32,7 +41,7 @@ export default function Routes() {
       >
         <Tab.Screen name="Estudos" component={HomeScreen} />
         <Tab.Screen name="Adicionar" component={CreateScreen} />
-        <Tab.Screen name="Metas" component={() => null} />
+        <Tab.Screen name="Metas" component={MetasScreen} />
       </Tab.Navigator>
     </NavigationContainer>
   );
