@@ -17,7 +17,7 @@ export default function LoginScreen({ navigation }: any) {
       return;
     }
 
-    navigation.navigate("Home");
+    navigation.replace("Main");
   };
 
   return (
@@ -51,8 +51,8 @@ export default function LoginScreen({ navigation }: any) {
           <Text style={styles.link}>Esqueceu a senha?</Text>
         </TouchableOpacity>
 
-        <TouchableOpacity onPress={() => navigation.navigate("Create")}>
-          <Text style={styles.link}>Criar conta</Text>
+        <TouchableOpacity onPress={() => navigation.replace("Main")}>
+          <Text style={styles.link}>Entrar sem conta</Text>
         </TouchableOpacity>
       </View>
     </View>
