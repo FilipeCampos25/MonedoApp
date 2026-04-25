@@ -11,11 +11,12 @@ import {
   View,
 } from 'react-native';
 
+import { MOCK_CREDENTIALS } from '../services/mockApi';
 import { COLORS, SHADOW } from '../styles/theme';
 
 export function LoginScreen({ onLogin }) {
-  const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
+  const [email, setEmail] = useState(MOCK_CREDENTIALS.email);
+  const [password, setPassword] = useState(MOCK_CREDENTIALS.password);
 
   return (
     <SafeAreaView style={styles.loginSafeArea}>
@@ -28,6 +29,11 @@ export function LoginScreen({ onLogin }) {
           <View style={styles.loginCard}>
             <Text style={styles.loginTitle}>ATLAS</Text>
             <Text style={styles.loginSubtitle}>Fa\u00e7a login para continuar</Text>
+            <View style={styles.mockHintBox}>
+              <Text style={styles.mockHintTitle}>Acesso mock</Text>
+              <Text style={styles.mockHintText}>Email: {MOCK_CREDENTIALS.email}</Text>
+              <Text style={styles.mockHintText}>Senha: {MOCK_CREDENTIALS.password}</Text>
+            </View>
 
             <Text style={styles.inputLabel}>Email</Text>
             <TextInput
@@ -112,7 +118,26 @@ const styles = StyleSheet.create({
     textAlign: 'center',
     fontSize: 14,
     color: '#3E4960',
-    marginBottom: 22,
+    marginBottom: 14,
+  },
+  mockHintBox: {
+    backgroundColor: '#EEF4FF',
+    borderWidth: 1,
+    borderColor: '#C9D8FF',
+    borderRadius: 8,
+    paddingHorizontal: 12,
+    paddingVertical: 10,
+    marginBottom: 18,
+  },
+  mockHintTitle: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: COLORS.primary,
+    marginBottom: 4,
+  },
+  mockHintText: {
+    fontSize: 12,
+    color: COLORS.text,
   },
   inputLabel: {
     fontSize: 12,

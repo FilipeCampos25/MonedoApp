@@ -1,4 +1,11 @@
-export const API_BASE_URL = 'http://SEU_BACKEND_AQUI';
+import { mockApiRequest } from '../mockApi';
+
+const PLACEHOLDER_API_BASE_URL = 'http://SEU_BACKEND_AQUI';
+const RUNTIME_API_BASE_URL =
+  typeof process !== 'undefined' ? process.env.EXPO_PUBLIC_API_BASE_URL : '';
+
+export const API_BASE_URL = RUNTIME_API_BASE_URL || PLACEHOLDER_API_BASE_URL;
+export const USE_MOCK_API = API_BASE_URL === PLACEHOLDER_API_BASE_URL;
 
 function buildHeaders(token, customHeaders = {}) {
   const headers = {
@@ -35,6 +42,10 @@ function parseResponse(response) {
 }
 
 export function apiRequest(route, options = {}) {
+  if (USE_MOCK_API) {
+    return mockApiRequest(route, options);
+  }
+
   const {
     method = 'GET',
     body,

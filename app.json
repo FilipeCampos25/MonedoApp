@@ -1,4 +1,6 @@
 {
-  "name": "monedo2",
-  "displayName": "Monedo2"
+  "expo": {
+    "name": "Monedo2",
+    "slug": "monedo2"
+  }
 }

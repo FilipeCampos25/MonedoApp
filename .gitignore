@@ -45,11 +45,11 @@ pip-wheel-metadata/
 
 # Frontend and package manager artifacts
 node_modules/
+.expo/
+.expo-shared/
 .npm/
 .pnpm-store/
 .yarn/
-.expo/
-.expo-shared/
 .parcel-cache/
 .next/
 .nuxt/
