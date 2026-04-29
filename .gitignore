@@ -1,9 +1,35 @@
-# Learn more https://docs.github.com/en/get-started/getting-started-with-git/ignoring-files
+# =========================
+# Environment and secrets
+# =========================
+.env
+.env.*
+!.env.example
+!.env.sample
+!.env.template
+.env*.local
 
-# dependencies
+*.pem
+*.key
+*.crt
+*.p12
+*.pfx
+
+# =========================
+# Node / Frontend
+# =========================
 node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+.parcel-cache/
+.next/
+.nuxt/
+.svelte-kit/
+coverage/
 
-# Expo
+# =========================
+# Expo / React Native
+# =========================
 .expo/
 dist/
 web-build/
@@ -14,28 +40,71 @@ expo-env.d.ts
 *.orig.*
 *.jks
 *.p8
-*.p12
-*.key
 *.mobileprovision
 
 # Metro
 .metro-health-check*
 
-# debug
+# =========================
+# Debug
+# =========================
 npm-debug.*
 yarn-debug.*
 yarn-error.*
 
-# macOS
-.DS_Store
-*.pem
-
-# local env files
-.env*.local
-
-# typescript
+# =========================
+# TypeScript
+# =========================
 *.tsbuildinfo
 
-# generated native folders
+# =========================
+# Python (caso backend use)
+# =========================
+__pycache__/
+*.py[cod]
+*.pyo
+*.pyd
+*.so
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+.coverage.*
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+ENV/
+
+# Python build artifacts
+build/
+site/
+*.egg-info/
+.eggs/
+pip-wheel-metadata/
+
+# =========================
+# Databases / logs
+# =========================
+*.db
+*.sqlite
+*.sqlite3
+*.log
+
+# =========================
+# IDE / Sistema
+# =========================
+.vscode/
+.idea/
+*.swp
+*.swo
+.DS_Store
+Thumbs.db
+
+# =========================
+# Mobile folders (React Native)
+# =========================
 /ios
 /android
