@@ -1,6 +1,9 @@
-import { View, Text, StyleSheet, ScrollView } from "react-native";
+import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
 import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { BarChart } from "react-native-chart-kit";
+
+const screenWidth = Dimensions.get("window").width;
 
 export default function HomeScreen({ route }: any) {
   const [activities, setActivities] = useState([
@@ -47,22 +50,36 @@ export default function HomeScreen({ route }: any) {
         </View>
 
         {/* GRÁFICO */}
-        <View style={[styles.card, { marginTop: 10 }]}>
+        <View style={styles.card}>
           <Text style={styles.sectionTitle}>Horas de Estudo - Semana</Text>
-          <View style={styles.chartContainer}>
-            {["Seg", "Ter", "Qua", "Qui", "Sex", "Sáb", "Dom"].map(
-              (day, index) => {
-                const heights = [30, 50, 25, 40, 45, 60, 20];
-                return (
-                  <View key={index} style={styles.barItem}>
-                    <View style={[styles.bar, { height: heights[index] }]} />
-                    <Text style={styles.barLabel}>{day}</Text>
-                  </View>
-                );
-              },
-            )}
+
+          <View style={styles.chartWrapper}>
+            <BarChart
+              data={{
+                labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"],
+                datasets: [{ data: [2.5, 3.8, 3.2, 4.5, 3.9, 2.0, 5.0] }],
+              }}
+              width={screenWidth - 80}
+              height={220}
+              yAxisSuffix="h"
+              chartConfig={{
+                backgroundGradientFrom: "#fff",
+                backgroundGradientTo: "#fff",
+                decimalPlaces: 1,
+
+                color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
+                labelColor: () => "#6B7280",
+
+                fillShadowGradient: "#3B82F6",
+                fillShadowGradientOpacity: 1,
+}}
+              style={{
+                borderRadius: 12,
+              }}
+            />
           </View>
-          <Text style={styles.totalText}>Total: 24 horas esta semana</Text>
+
+          <Text style={styles.totalText}>Total: 24h nesta semana</Text>
         </View>
 
         {/* PROGRESSO */}
@@ -136,6 +153,7 @@ const styles = StyleSheet.create({
   row: {
     flexDirection: "row",
     justifyContent: "space-between",
+    marginBottom: 24, // 👈 ISSO RESOLVE
   },
   smallCard: {
     backgroundColor: "#fff",
@@ -201,5 +219,9 @@ const styles = StyleSheet.create({
     paddingHorizontal: 10,
     paddingVertical: 4,
     borderRadius: 10,
+  },
+  chartWrapper: {
+    marginTop: 10,
+    alignItems: "center",
   },
 });
