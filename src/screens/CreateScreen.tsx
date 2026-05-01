@@ -33,7 +33,7 @@ export default function CreateScreen({ navigation }: any) {
     { label: "Inglês", value: "Inglês" },
   ]);
 
-  // PRIORITY COM CORES
+  // PRIORITY
   const [priorityOpen, setPriorityOpen] = useState(false);
   const [priority, setPriority] = useState(null);
   const [priorityItems, setPriorityItems] = useState([
@@ -44,186 +44,195 @@ export default function CreateScreen({ navigation }: any) {
   ]);
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={["top"]}>
-      <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+    <View style={{ flex: 1, backgroundColor: "#2563EB" }}>
+      <SafeAreaView style={{ backgroundColor: "#2563EB" }} edges={["top"]}>
+        <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
 
-      {/* HEADER */}
-      <View style={styles.header}>
-        <Pressable onPress={() => navigation.goBack()}>
-          <Ionicons name="arrow-back" size={22} color="#fff" />
-        </Pressable>
-        <Text style={styles.headerTitle}>Adicionar Dados</Text>
-      </View>
-
-      <ScrollView contentContainerStyle={styles.container}>
-        {/* TÍTULO */}
-        <Text style={styles.label}>Título</Text>
-        <TextInput
-          style={styles.input}
-          placeholder="Ex: Reunião importante"
-          value={title}
-          onChangeText={setTitle}
-        />
-
-        {/* DATA + HORA */}
-        <View style={styles.row}>
-          <View style={styles.half}>
-            <Text style={styles.label}>Data</Text>
-            <Pressable
-              style={styles.inputContainer}
-              onPress={() => setShowDatePicker(true)}
-            >
-              <Ionicons name="calendar-outline" size={20} color="#666" />
-              <TextInput
-                style={styles.inputWithIcon}
-                placeholder="dd/mm"
-                value={date}
-                onChangeText={setDate}
-              />
-            </Pressable>
-          </View>
-
-          <View style={styles.half}>
-            <Text style={styles.label}>Hora</Text>
-            <Pressable
-              style={styles.inputContainer}
-              onPress={() => setShowTimePicker(true)}
-            >
-              <Ionicons name="time-outline" size={20} color="#666" />
-              <TextInput
-                style={styles.inputWithIcon}
-                placeholder="--:--"
-                value={time}
-                onChangeText={setTime}
-              />
-            </Pressable>
-          </View>
+        {/* HEADER */}
+        <View style={styles.header}>
+          <Pressable onPress={() => navigation.goBack()}>
+            <Ionicons name="arrow-back" size={22} color="#fff" />
+          </Pressable>
+          <Text style={styles.headerTitle}>Adicionar Dados</Text>
         </View>
+      </SafeAreaView>
 
-        {/* PICKERS */}
-        {showDatePicker && (
-          <DateTimePicker
-            value={new Date()}
-            mode="date"
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={(event, selectedDate) => {
-              setShowDatePicker(false);
-              if (selectedDate) {
-                setDate(selectedDate.toLocaleDateString("pt-BR"));
-              }
-            }}
+      {/* CONTEÚDO */}
+      <View style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
+        <ScrollView contentContainerStyle={styles.container}>
+          {/* TÍTULO */}
+          <Text style={styles.label}>Título</Text>
+          <TextInput
+            style={styles.input}
+            placeholder="Ex: Prova de Matemática"
+            value={title}
+            onChangeText={setTitle}
           />
-        )}
 
-        {showTimePicker && (
-          <DateTimePicker
-            value={new Date()}
-            mode="time"
-            is24Hour
-            display={Platform.OS === "ios" ? "spinner" : "default"}
-            onChange={(event, selectedTime) => {
-              setShowTimePicker(false);
-              if (selectedTime) {
-                setTime(
-                  selectedTime.toLocaleTimeString("pt-BR", {
-                    hour: "2-digit",
-                    minute: "2-digit",
-                  }),
-                );
-              }
-            }}
-          />
-        )}
-
-        {/* CATEGORIA */}
-        <Text style={styles.label}>Categoria</Text>
-        <DropDownPicker
-          open={categoryOpen}
-          value={category}
-          items={categoryItems}
-          setOpen={setCategoryOpen}
-          setValue={setCategory}
-          setItems={setCategoryItems}
-          placeholder="Selecione uma categoria"
-          style={styles.dropdown}
-          zIndex={3000}
-          zIndexInverse={1000}
-          listMode="SCROLLVIEW"
-        />
-
-        {/* PRIORIDADE COM BOLINHA */}
-        <Text style={styles.label}>Prioridade</Text>
-        <DropDownPicker
-          open={priorityOpen}
-          value={priority}
-          items={priorityItems}
-          setOpen={setPriorityOpen}
-          setValue={setPriority}
-          setItems={setPriorityItems}
-          placeholder="Selecione a prioridade"
-          style={styles.dropdown}
-          zIndex={2000}
-          zIndexInverse={2000}
-          listMode="SCROLLVIEW"
-          renderListItem={(props) => {
-            const item = props.item;
-
-            return (
-              <Pressable onPress={props.onPress} style={styles.dropdownItem}>
-                <View
-                  style={[styles.colorDot, { backgroundColor: item.color }]}
+          {/* DATA + HORA */}
+          <View style={styles.row}>
+            <View style={styles.half}>
+              <Text style={styles.label}>Data</Text>
+              <Pressable
+                style={styles.inputContainer}
+                onPress={() => setShowDatePicker(true)}
+              >
+                <Ionicons name="calendar-outline" size={20} color="#666" />
+                <TextInput
+                  style={styles.inputWithIcon}
+                  placeholder="dd/mm"
+                  value={date}
+                  onChangeText={setDate}
                 />
-                <Text>{item.label}</Text>
               </Pressable>
-            );
-          }}
-        />
+            </View>
 
-        {/* DESCRIÇÃO */}
-        <Text style={styles.label}>Descrição</Text>
-        <TextInput
-          style={[styles.input, { height: 80 }]}
-          placeholder="Adicione detalhes..."
-          multiline
-          value={description}
-          onChangeText={setDescription}
-        />
+            <View style={styles.half}>
+              <Text style={styles.label}>Hora</Text>
+              <Pressable
+                style={styles.inputContainer}
+                onPress={() => setShowTimePicker(true)}
+              >
+                <Ionicons name="time-outline" size={20} color="#666" />
+                <TextInput
+                  style={styles.inputWithIcon}
+                  placeholder="--:--"
+                  value={time}
+                  onChangeText={setTime}
+                />
+              </Pressable>
+            </View>
+          </View>
 
-        {/* SALVAR */}
-        <Pressable
-          style={styles.primaryButton}
-          onPress={() => {
-            navigation.navigate("Estudos", {
-              newItem: {
-                id: Date.now().toString(),
-                title,
-                date: date || "Hoje",
-                time: time || "--:--",
-                category,
-                priority,
-                description,
-              },
-            });
-          }}
-        >
-          <Text style={styles.primaryText}>Salvar</Text>
-        </Pressable>
+          {/* PICKERS */}
+          {showDatePicker && (
+            <DateTimePicker
+              value={new Date()}
+              mode="date"
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event, selectedDate) => {
+                setShowDatePicker(false);
+                if (selectedDate) {
+                  setDate(selectedDate.toLocaleDateString("pt-BR"));
+                }
+              }}
+            />
+          )}
 
-        {/* CANCELAR */}
-        <Pressable
-          style={styles.secondaryButton}
-          onPress={() => navigation.goBack()}
-        >
-          <Text style={styles.secondaryText}>Cancelar</Text>
-        </Pressable>
-      </ScrollView>
-    </SafeAreaView>
+          {showTimePicker && (
+            <DateTimePicker
+              value={new Date()}
+              mode="time"
+              is24Hour
+              display={Platform.OS === "ios" ? "spinner" : "default"}
+              onChange={(event, selectedTime) => {
+                setShowTimePicker(false);
+                if (selectedTime) {
+                  setTime(
+                    selectedTime.toLocaleTimeString("pt-BR", {
+                      hour: "2-digit",
+                      minute: "2-digit",
+                    }),
+                  );
+                }
+              }}
+            />
+          )}
+
+          {/* CATEGORIA */}
+          <Text style={styles.label}>Categoria</Text>
+          <DropDownPicker
+            open={categoryOpen}
+            value={category}
+            items={categoryItems}
+            setOpen={setCategoryOpen}
+            setValue={setCategory}
+            setItems={setCategoryItems}
+            placeholder="Selecione uma categoria"
+            style={styles.dropdown}
+            zIndex={3000}
+            zIndexInverse={1000}
+            listMode="SCROLLVIEW"
+          />
+
+          {/* PRIORIDADE */}
+          <Text style={styles.label}>Prioridade</Text>
+          <DropDownPicker
+            open={priorityOpen}
+            value={priority}
+            items={priorityItems}
+            setOpen={setPriorityOpen}
+            setValue={setPriority}
+            setItems={setPriorityItems}
+            placeholder="Selecione a prioridade"
+            style={styles.dropdown}
+            zIndex={2000}
+            zIndexInverse={2000}
+            listMode="SCROLLVIEW"
+            renderListItem={(props) => {
+              const item = props.item;
+
+              return (
+                <Pressable
+                  onPress={() => {
+                    setPriority(item.value);
+                    setPriorityOpen(false);
+                  }}
+                  style={styles.dropdownItem}
+                >
+                  <View
+                    style={[styles.colorDot, { backgroundColor: item.color }]}
+                  />
+                  <Text>{item.label}</Text>
+                </Pressable>
+              );
+            }}
+          />
+
+          {/* DESCRIÇÃO */}
+          <Text style={styles.label}>Descrição</Text>
+          <TextInput
+            style={[styles.input, { height: 80 }]}
+            placeholder="Detalhes..."
+            multiline
+            value={description}
+            onChangeText={setDescription}
+          />
+
+          {/* SALVAR */}
+          <Pressable
+            style={styles.primaryButton}
+            onPress={() => {
+              navigation.navigate("Estudos", {
+                newItem: {
+                  id: Date.now().toString(),
+                  title,
+                  date: date || "Hoje",
+                  time: time || "--:--",
+                  category,
+                  priority,
+                  description,
+                },
+              });
+            }}
+          >
+            <Text style={styles.primaryText}>Salvar</Text>
+          </Pressable>
+
+          {/* CANCELAR */}
+          <Pressable
+            style={styles.secondaryButton}
+            onPress={() => navigation.goBack()}
+          >
+            <Text style={styles.secondaryText}>Cancelar</Text>
+          </Pressable>
+        </ScrollView>
+      </View>
+    </View>
   );
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: "#2563EB" },
-
   header: {
     backgroundColor: "#2563EB",
     flexDirection: "row",
