@@ -7,6 +7,7 @@ import { View, Text } from "react-native";
 import HomeScreen from "../screens/HomeScreen";
 import CreateScreen from "../screens/CreateScreen";
 import LoginScreen from "../screens/LoginScreen";
+import React from "react";
 
 function MetasScreen() {
   return (

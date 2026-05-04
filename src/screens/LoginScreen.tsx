@@ -5,7 +5,7 @@ import {
   TouchableOpacity,
   StyleSheet,
 } from "react-native";
-import { useState } from "react";
+import React, { useState } from "react";
 
 export default function LoginScreen({ navigation }: any) {
   const [email, setEmail] = useState("");
