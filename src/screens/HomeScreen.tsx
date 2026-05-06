@@ -55,20 +55,20 @@ export default function HomeScreen({ route }: any) {
         <View style={styles.row}>
           <View style={styles.smallCard}>
             <View style={styles.cardHeader}>
-              <Text>Horas Hoje</Text>
+              <Text style={styles.bodyText}>Horas Hoje</Text>
               <MaterialIcons name="access-time" size={26} color="#3b82f6" />
             </View>
             <Text style={styles.bigNumber}>3.5h</Text>
-            <Text style={styles.meta}>Meta: 4h por dia</Text>
+            <Text style={[styles.meta, styles.bodyText]}>Meta: 4h por dia</Text>
           </View>
 
           <View style={styles.smallCard}>
             <View style={styles.cardHeader}>
-              <Text>Sessões</Text>
+              <Text style={styles.bodyText}>Sessões</Text>
               <Ionicons name="book-outline" size={26} color="#10b981" />
             </View>
             <Text style={styles.bigNumber}>7</Text>
-            <Text>Sessions completas</Text>
+            <Text style={styles.bodyText}>Sessions completas</Text>
           </View>
         </View>
 
@@ -148,8 +148,8 @@ export default function HomeScreen({ route }: any) {
                   />
 
                   <View>
-                    <Text style={{ fontWeight: "bold" }}>{item.title}</Text>
-                    <Text>{item.date}</Text>
+                    <Text style={[styles.bodyText, { fontWeight: "bold" }]}>{item.title}</Text>
+                    <Text style={styles.bodyText}>{item.date}</Text>
                   </View>
                 </View>
 
@@ -160,7 +160,7 @@ export default function HomeScreen({ route }: any) {
                     { backgroundColor: style.backgroundColor },
                   ]}
                 >
-                  <Text style={{ color: style.color, fontWeight: "600" }}>
+                  <Text style={[styles.bodyText, { color: style.color, fontWeight: "600" }]}> 
                     {item.priority}
                   </Text>
                 </View>
@@ -182,6 +182,7 @@ const styles = StyleSheet.create({
   title: {
     fontSize: 22,
     fontWeight: "bold",
+    fontFamily: "System",
     color: "#2563eb",
     marginTop: 10,
     marginBottom: 16,
@@ -194,10 +195,12 @@ const styles = StyleSheet.create({
   },
   subtitle: {
     color: "#6b7280",
+    fontFamily: "System",
   },
   date: {
     fontSize: 18,
     fontWeight: "bold",
+    fontFamily: "System",
   },
   row: {
     flexDirection: "row",
@@ -218,13 +221,17 @@ const styles = StyleSheet.create({
   bigNumber: {
     fontSize: 22,
     fontWeight: "bold",
+    fontFamily: "System",
     marginVertical: 8,
   },
   meta: {
     color: "#6b7280",
+    fontFamily: "System",
+    fontSize: 14,
   },
   sectionTitle: {
     fontWeight: "bold",
+    fontFamily: "System",
     marginBottom: 10,
   },
   chartWrapper: {
@@ -235,6 +242,7 @@ const styles = StyleSheet.create({
     marginTop: 10,
     textAlign: "center",
     color: "#6b7280",
+    fontFamily: "System",
   },
   progressHeader: {
     flexDirection: "row",
@@ -251,6 +259,10 @@ const styles = StyleSheet.create({
     height: 8,
     backgroundColor: "#2563eb",
     borderRadius: 4,
+  },
+  bodyText: {
+    fontFamily: "System",
+    color: "#111827",
   },
   activityItem: {
     flexDirection: "row",

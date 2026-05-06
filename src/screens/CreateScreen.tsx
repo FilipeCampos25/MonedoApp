@@ -21,7 +21,10 @@ export default function CreateScreen({ navigation }: any) {
   const [description, setDescription] = useState("");
 
   const [showDatePicker, setShowDatePicker] = useState(false);
-  const [showTimePicker, setShowTimePicker] = useState(false);
+
+  const selectedDate = date
+    ? new Date(date.split("/").reverse().join("-"))
+    : new Date();
 
   // CATEGORY
   const [categoryOpen, setCategoryOpen] = useState(false);
@@ -35,13 +38,27 @@ export default function CreateScreen({ navigation }: any) {
 
   // PRIORITY
   const [priorityOpen, setPriorityOpen] = useState(false);
-  const [priority, setPriority] = useState(null);
-  const [priorityItems, setPriorityItems] = useState([
+  const [priority, setPriority] = useState<string | null>(null);
+  const [priorityItems, setPriorityItems] = useState<Array<{
+    label: string;
+    value: string;
+    color: string;
+  }>>([
     { label: "Baixa", value: "baixa", color: "#22C55E" },
     { label: "Média", value: "media", color: "#EAB308" },
     { label: "Alta", value: "alta", color: "#F97316" },
     { label: "Urgente", value: "urgente", color: "#EF4444" },
   ]);
+
+  function handleTimeChange(value: string) {
+    const digits = value.replace(/[^0-9]/g, "").slice(0, 4);
+    if (digits.length <= 2) {
+      setTime(digits);
+      return;
+    }
+
+    setTime(`${digits.slice(0, 2)}:${digits.slice(2)}`);
+  }
 
   return (
     <View style={{ flex: 1, backgroundColor: "#2563EB" }}>
@@ -78,62 +95,42 @@ export default function CreateScreen({ navigation }: any) {
                 onPress={() => setShowDatePicker(true)}
               >
                 <Ionicons name="calendar-outline" size={20} color="#666" />
-                <TextInput
-                  style={styles.inputWithIcon}
-                  placeholder="dd/mm"
-                  value={date}
-                  onChangeText={setDate}
-                />
+                <Text
+                  style={
+                    date
+                      ? [styles.inputWithIcon, styles.inputText]
+                      : [styles.inputWithIcon, styles.placeholderText]
+                  }
+                >
+                  {date || "dd/mm/aaaa"}
+                </Text>
               </Pressable>
             </View>
 
             <View style={styles.half}>
               <Text style={styles.label}>Hora</Text>
-              <Pressable
-                style={styles.inputContainer}
-                onPress={() => setShowTimePicker(true)}
-              >
-                <Ionicons name="time-outline" size={20} color="#666" />
-                <TextInput
-                  style={styles.inputWithIcon}
-                  placeholder="--:--"
-                  value={time}
-                  onChangeText={setTime}
-                />
-              </Pressable>
+              <TextInput
+                style={styles.input}
+                placeholder="HH:MM"
+                value={time}
+                onChangeText={handleTimeChange}
+                keyboardType="numeric"
+                maxLength={5}
+              />
             </View>
           </View>
 
           {/* PICKERS */}
           {showDatePicker && (
             <DateTimePicker
-              value={new Date()}
+              value={selectedDate}
               mode="date"
-              display={Platform.OS === "ios" ? "spinner" : "default"}
+              display={Platform.OS === "ios" ? "inline" : "calendar"}
               onChange={(event, selectedDate) => {
                 setShowDatePicker(false);
+                if (event.type === "dismissed") return;
                 if (selectedDate) {
                   setDate(selectedDate.toLocaleDateString("pt-BR"));
-                }
-              }}
-            />
-          )}
-
-          {showTimePicker && (
-            <DateTimePicker
-              value={new Date()}
-              mode="time"
-              is24Hour
-              display={Platform.OS === "ios" ? "spinner" : "default"}
-              onChange={(event, selectedTime) => {
-                setShowTimePicker(false);
-                if (selectedTime) {
-                  setTime(
-                    selectedTime.toLocaleTimeString("pt-BR", {
-                      hour: "2-digit",
-                      minute: "2-digit",
-                    }),
-                  );
                 }
               }}
             />
@@ -170,7 +167,11 @@ export default function CreateScreen({ navigation }: any) {
             zIndexInverse={2000}
             listMode="SCROLLVIEW"
             renderListItem={(props) => {
-              const item = props.item;
+              const item = props.item as {
+                label: string;
+                value: string;
+                color: string;
+              };
 
               return (
                 <Pressable
@@ -244,6 +245,7 @@ const styles = StyleSheet.create({
     color: "#fff",
     fontSize: 20,
     fontWeight: "700",
+    fontFamily: "System",
     marginLeft: 10,
   },
 
@@ -256,6 +258,7 @@ const styles = StyleSheet.create({
   label: {
     fontSize: 13,
     fontWeight: "600",
+    fontFamily: "System",
     marginBottom: 5,
     marginTop: 10,
   },
@@ -265,6 +268,8 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     paddingHorizontal: 10,
     height: 40,
+    fontFamily: "System",
+    color: "#111827",
   },
 
   inputContainer: {
@@ -279,6 +284,18 @@ const styles = StyleSheet.create({
   inputWithIcon: {
     flex: 1,
     marginHorizontal: 10,
+    fontFamily: "System",
+    color: "#111827",
+  },
+
+  inputText: {
+    fontFamily: "System",
+    color: "#111827",
+  },
+
+  placeholderText: {
+    fontFamily: "System",
+    color: "#9CA3AF",
   },
 
   dropdown: {
@@ -322,6 +339,7 @@ const styles = StyleSheet.create({
   primaryText: {
     color: "#fff",
     fontWeight: "700",
+    fontFamily: "System",
     fontSize: 16,
   },
 
@@ -338,5 +356,6 @@ const styles = StyleSheet.create({
 
   secondaryText: {
     color: "#111",
+    fontFamily: "System",
   },
 });

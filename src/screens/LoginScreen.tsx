@@ -69,6 +69,7 @@ const styles = StyleSheet.create({
   logo: {
     fontSize: 32,
     fontWeight: "bold",
+    fontFamily: "System",
     color: "#2563eb",
     textAlign: "center",
     marginBottom: 10,
@@ -76,17 +77,20 @@ const styles = StyleSheet.create({
   subtitle: {
     textAlign: "center",
     color: "#555",
+    fontFamily: "System",
     marginBottom: 30,
   },
   label: {
     marginBottom: 5,
     color: "#333",
+    fontFamily: "System",
   },
   input: {
     backgroundColor: "#e5e5e5",
     borderRadius: 10,
     padding: 12,
     marginBottom: 15,
+    fontFamily: "System",
   },
   button: {
     backgroundColor: "#2563eb",
@@ -98,6 +102,7 @@ const styles = StyleSheet.create({
   buttonText: {
     color: "#fff",
     fontWeight: "bold",
+    fontFamily: "System",
   },
   linksContainer: {
     flexDirection: "row",
@@ -106,5 +111,6 @@ const styles = StyleSheet.create({
   },
   link: {
     color: "#2563eb",
+    fontFamily: "System",
   },
 });

@@ -360,11 +360,13 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontSize: 34,
     fontWeight: "800",
+    fontFamily: "System",
   },
   subtitle: {
     color: "#6B7280",
     fontSize: 18,
     fontWeight: "600",
+    fontFamily: "System",
     marginTop: 4,
   },
   headerIcon: {
@@ -398,6 +400,7 @@ const styles = StyleSheet.create({
   statusText: {
     fontSize: 18,
     fontWeight: "800",
+    fontFamily: "System",
   },
   timerArea: {
     alignItems: "center",
@@ -423,6 +426,7 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 42,
     fontWeight: "900",
+    fontFamily: "System",
     letterSpacing: 0.5,
     marginTop: 18,
   },
@@ -430,6 +434,7 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 15,
     fontWeight: "700",
+    fontFamily: "System",
     marginTop: 10,
   },
   controlsRow: {
@@ -461,12 +466,14 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 15,
     fontWeight: "800",
+    fontFamily: "System",
     marginTop: 10,
   },
   primaryControlLabel: {
     color: "#FFFFFF",
     fontSize: 15,
     fontWeight: "800",
+    fontFamily: "System",
     marginTop: 10,
   },
   optionsCard: {
@@ -499,12 +506,14 @@ const styles = StyleSheet.create({
     color: "#6B7280",
     fontSize: 15,
     fontWeight: "700",
+    fontFamily: "System",
     marginBottom: 4,
   },
   optionValue: {
     color: "#111827",
     fontSize: 18,
     fontWeight: "800",
+    fontFamily: "System",
   },
   optionDivider: {
     backgroundColor: "#E5E7EB",
@@ -528,6 +537,7 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 20,
     fontWeight: "900",
+    fontFamily: "System",
   },
   graphButton: {
     alignItems: "center",
@@ -537,6 +547,7 @@ const styles = StyleSheet.create({
     color: "#2563eb",
     fontSize: 14,
     fontWeight: "800",
+    fontFamily: "System",
     marginRight: 2,
   },
   summaryRow: {
@@ -568,11 +579,13 @@ const styles = StyleSheet.create({
     color: "#111827",
     fontSize: 28,
     fontWeight: "900",
+    fontFamily: "System",
   },
   summaryLabel: {
     color: "#6B7280",
     fontSize: 12,
     fontWeight: "700",
+    fontFamily: "System",
     marginTop: 4,
     textAlign: "center",
   },
