@@ -142,7 +142,7 @@ export default function FocusScreen() {
   return (
     <View style={styles.root}>
       <SafeAreaView style={styles.safeArea}>
-        <StatusBar barStyle="light-content" backgroundColor="#031225" />
+        <StatusBar barStyle="dark-content" backgroundColor="#F5F5F5" />
 
         <ScrollView
           showsVerticalScrollIndicator={false}
@@ -155,7 +155,7 @@ export default function FocusScreen() {
             </View>
 
             <View style={styles.headerIcon}>
-              <Ionicons name="bar-chart-outline" size={32} color="#F8FAFC" />
+              <Ionicons name="bar-chart-outline" size={32} color="#2563eb" />
             </View>
           </View>
 
@@ -178,7 +178,7 @@ export default function FocusScreen() {
                   cx={TIMER_CENTER}
                   cy={TIMER_CENTER}
                   r={TIMER_RADIUS}
-                  stroke="#19365F"
+                  stroke="#E5E7EB"
                   strokeWidth={TIMER_STROKE}
                   fill="none"
                 />
@@ -187,7 +187,7 @@ export default function FocusScreen() {
                   cx={TIMER_CENTER}
                   cy={TIMER_CENTER}
                   r={TIMER_RADIUS}
-                  stroke="#2F86FF"
+                  stroke="#2563eb"
                   strokeWidth={TIMER_STROKE}
                   fill="none"
                   strokeDasharray={TIMER_CIRCUMFERENCE}
@@ -204,7 +204,7 @@ export default function FocusScreen() {
               )}
 
               <View style={styles.timerCenter}>
-                <Ionicons name="stopwatch-outline" size={42} color="#2F86FF" />
+                <Ionicons name="stopwatch-outline" size={42} color="#2563eb" />
                 <Text style={styles.timerText}>{formatTimer(seconds)}</Text>
                 <Text style={styles.timerLabel}>Tempo total de estudo</Text>
               </View>
@@ -334,13 +334,13 @@ function getStatusInfo(status: TimerStatus) {
     return { label: "Pausado", color: "#FBBF24" };
   }
 
-  return { label: "Pronto", color: "#60A5FA" };
+  return { label: "Pronto", color: "#6B7280" };
 }
 
 const styles = StyleSheet.create({
   root: {
     flex: 1,
-    backgroundColor: "#031225",
+    backgroundColor: "#F5F5F5",
   },
   safeArea: {
     flex: 1,
@@ -357,27 +357,27 @@ const styles = StyleSheet.create({
     marginBottom: 24,
   },
   title: {
-    color: "#F8FAFC",
+    color: "#2563eb",
     fontSize: 34,
     fontWeight: "800",
   },
   subtitle: {
-    color: "#94A3B8",
+    color: "#6B7280",
     fontSize: 18,
     fontWeight: "600",
     marginTop: 4,
   },
   headerIcon: {
     alignItems: "center",
-    backgroundColor: "#142D52",
+    backgroundColor: "#DBEAFE",
     borderRadius: 34,
     height: 68,
     justifyContent: "center",
     width: 68,
   },
   timerCard: {
-    backgroundColor: "#081B33",
-    borderColor: "#183A63",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E5E7EB",
     borderRadius: 24,
     borderWidth: 1,
     marginBottom: 18,
@@ -407,8 +407,8 @@ const styles = StyleSheet.create({
     position: "relative",
   },
   knob: {
-    backgroundColor: "#2F86FF",
-    borderColor: "#2F86FF",
+    backgroundColor: "#2563eb",
+    borderColor: "#2563eb",
     borderRadius: 10,
     borderWidth: 2,
     height: 20,
@@ -420,14 +420,14 @@ const styles = StyleSheet.create({
     position: "absolute",
   },
   timerText: {
-    color: "#FFFFFF",
+    color: "#111827",
     fontSize: 42,
     fontWeight: "900",
     letterSpacing: 0.5,
     marginTop: 18,
   },
   timerLabel: {
-    color: "#94A3B8",
+    color: "#6B7280",
     fontSize: 15,
     fontWeight: "700",
     marginTop: 10,
@@ -443,7 +443,7 @@ const styles = StyleSheet.create({
   },
   secondaryButton: {
     alignItems: "center",
-    backgroundColor: "#142D52",
+    backgroundColor: "#E5E7EB",
     borderRadius: 38,
     height: 76,
     justifyContent: "center",
@@ -451,14 +451,14 @@ const styles = StyleSheet.create({
   },
   primaryButton: {
     alignItems: "center",
-    backgroundColor: "#2F86FF",
+    backgroundColor: "#2563eb",
     borderRadius: 48,
     height: 96,
     justifyContent: "center",
     width: 96,
   },
   controlLabel: {
-    color: "#94A3B8",
+    color: "#6B7280",
     fontSize: 15,
     fontWeight: "800",
     marginTop: 10,
@@ -470,8 +470,8 @@ const styles = StyleSheet.create({
     marginTop: 10,
   },
   optionsCard: {
-    backgroundColor: "#081B33",
-    borderColor: "#183A63",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E5E7EB",
     borderRadius: 22,
     borderWidth: 1,
     marginBottom: 18,
@@ -485,7 +485,7 @@ const styles = StyleSheet.create({
   },
   optionIcon: {
     alignItems: "center",
-    backgroundColor: "#0C2A52",
+    backgroundColor: "#DBEAFE",
     borderRadius: 24,
     height: 48,
     justifyContent: "center",
@@ -496,24 +496,24 @@ const styles = StyleSheet.create({
     flex: 1,
   },
   optionLabel: {
-    color: "#94A3B8",
+    color: "#6B7280",
     fontSize: 15,
     fontWeight: "700",
     marginBottom: 4,
   },
   optionValue: {
-    color: "#FFFFFF",
+    color: "#111827",
     fontSize: 18,
     fontWeight: "800",
   },
   optionDivider: {
-    backgroundColor: "#183A63",
+    backgroundColor: "#E5E7EB",
     height: 1,
     marginLeft: 62,
   },
   summaryCard: {
-    backgroundColor: "#081B33",
-    borderColor: "#183A63",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E5E7EB",
     borderRadius: 22,
     borderWidth: 1,
     padding: 18,
@@ -525,7 +525,7 @@ const styles = StyleSheet.create({
     marginBottom: 18,
   },
   summaryTitle: {
-    color: "#FFFFFF",
+    color: "#111827",
     fontSize: 20,
     fontWeight: "900",
   },
@@ -534,7 +534,7 @@ const styles = StyleSheet.create({
     flexDirection: "row",
   },
   graphText: {
-    color: "#2F86FF",
+    color: "#2563eb",
     fontSize: 14,
     fontWeight: "800",
     marginRight: 2,
@@ -556,28 +556,28 @@ const styles = StyleSheet.create({
     width: 48,
   },
   summaryIconBlue: {
-    backgroundColor: "#0C2A52",
+    backgroundColor: "#DBEAFE",
   },
   summaryIconGreen: {
-    backgroundColor: "#11392F",
+    backgroundColor: "#DCFCE7",
   },
   summaryIconOrange: {
-    backgroundColor: "#3C2612",
+    backgroundColor: "#FEF3C7",
   },
   summaryValue: {
-    color: "#FFFFFF",
+    color: "#111827",
     fontSize: 28,
     fontWeight: "900",
   },
   summaryLabel: {
-    color: "#94A3B8",
+    color: "#6B7280",
     fontSize: 12,
     fontWeight: "700",
     marginTop: 4,
     textAlign: "center",
   },
   verticalDivider: {
-    backgroundColor: "#183A63",
+    backgroundColor: "#E5E7EB",
     height: 72,
     width: 1,
   },
