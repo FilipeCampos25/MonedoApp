@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { BarChart } from "react-native-chart-kit";
 import { MaterialIcons, Ionicons } from "@expo/vector-icons";
+import React from "react";
 
 const screenWidth = Dimensions.get("window").width;
 
@@ -83,6 +84,7 @@ export default function HomeScreen({ route }: any) {
               }}
               width={screenWidth - 80}
               height={220}
+              yAxisLabel=""
               yAxisSuffix="h"
               chartConfig={{
                 backgroundGradientFrom: "#fff",
