@@ -11,6 +11,16 @@ export default function HomeScreen({ route }: any) {
   const [activities, setActivities] = useState([
     { title: "Prova de Matemática", date: "Amanhã", priority: "alta" },
   ]);
+  const [currentDate, setCurrentDate] = useState<string>("");
+
+  useEffect(() => {
+    const today = new Date();
+    const formattedDate = today.toLocaleDateString("pt-BR", {
+      day: "numeric",
+      month: "long",
+    });
+    setCurrentDate(formattedDate);
+  }, []);
 
   useEffect(() => {
     if (route?.params?.newItem) {
@@ -48,7 +58,7 @@ export default function HomeScreen({ route }: any) {
         {/* DATA */}
         <View style={styles.card}>
           <Text style={styles.subtitle}>Hoje</Text>
-          <Text style={styles.date}>24 de abril</Text>
+          <Text style={styles.date}>{currentDate}</Text>
         </View>
 
         {/* CARDS DE RESUMO */}
