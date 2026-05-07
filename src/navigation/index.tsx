@@ -22,13 +22,15 @@ function TabRoutes() {
         tabBarStyle: {
           backgroundColor: "#FFFFFF",
           borderTopColor: "#E5E7EB",
-          height: 64,
-          paddingBottom: 8,
-          paddingTop: 8,
+          borderTopWidth: 1,
+          height: 80,
+          paddingBottom: 12,
+          paddingTop: 12,
         },
         tabBarLabelStyle: {
           fontSize: 12,
           fontWeight: "600",
+          marginTop: 4,
         },
         tabBarIcon: ({ color, size }) => {
           let iconName: any = "ellipse-outline";

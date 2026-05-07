@@ -27,15 +27,15 @@ export default function HomeScreen({ route }: any) {
   const getPriorityStyle = (priority: string) => {
     switch (priority) {
       case "baixa":
-        return { backgroundColor: "#DCFCE7", color: "#166534" };
+        return { color: "#22C55E" };
       case "media":
-        return { backgroundColor: "#FEF9C3", color: "#854D0E" };
+        return { color: "#EAB308" };
       case "alta":
-        return { backgroundColor: "#FFEDD5", color: "#9A3412" };
+        return { color: "#F97316" };
       case "urgente":
-        return { backgroundColor: "#FEE2E2", color: "#991B1B" };
+        return { color: "#EF4444" };
       default:
-        return { backgroundColor: "#E5E7EB", color: "#111827" };
+        return { color: "#6B7280" };
     }
   };
 
@@ -107,8 +107,12 @@ export default function HomeScreen({ route }: any) {
         {/* PROGRESSO */}
         <View style={styles.card}>
           <View style={styles.progressHeader}>
-            <Text style={styles.sectionTitle}>Progresso das Matérias</Text>
             <MaterialIcons name="track-changes" size={22} color="#2563eb" />
+            <Text
+              style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}
+            >
+              Progresso das Matérias
+            </Text>
           </View>
 
           {[
@@ -117,8 +121,11 @@ export default function HomeScreen({ route }: any) {
             { name: "História", progress: 85 },
             { name: "Inglês", progress: 45 },
           ].map((item, index) => (
-            <View key={index} style={{ marginBottom: 10 }}>
-              <Text>{item.name}</Text>
+            <View key={index} style={styles.progressItem}>
+              <View style={styles.progressInfoRow}>
+                <Text style={styles.subjectName}>{item.name}</Text>
+                <Text style={styles.progressText}>{item.progress}%</Text>
+              </View>
               <View style={styles.progressBarBackground}>
                 <View
                   style={[
@@ -127,7 +134,6 @@ export default function HomeScreen({ route }: any) {
                   ]}
                 />
               </View>
-              <Text>{item.progress}%</Text>
             </View>
           ))}
         </View>
@@ -148,19 +154,23 @@ export default function HomeScreen({ route }: any) {
                   />
 
                   <View>
-                    <Text style={[styles.bodyText, { fontWeight: "bold" }]}>{item.title}</Text>
+                    <Text style={[styles.bodyText, { fontWeight: "bold" }]}>
+                      {item.title}
+                    </Text>
                     <Text style={styles.bodyText}>{item.date}</Text>
                   </View>
                 </View>
 
                 {/* PRIORIDADE */}
                 <View
-                  style={[
-                    styles.priority,
-                    { backgroundColor: style.backgroundColor },
-                  ]}
+                  style={[styles.priority, { backgroundColor: style.color }]}
                 >
-                  <Text style={[styles.bodyText, { color: style.color, fontWeight: "600" }]}> 
+                  <Text
+                    style={[
+                      styles.bodyText,
+                      { color: "#FFFFFF", fontWeight: "600" },
+                    ]}
+                  >
                     {item.priority}
                   </Text>
                 </View>
@@ -232,7 +242,7 @@ const styles = StyleSheet.create({
   sectionTitle: {
     fontWeight: "bold",
     fontFamily: "System",
-    marginBottom: 10,
+    marginBottom: 16,
   },
   chartWrapper: {
     marginTop: 10,
@@ -246,14 +256,32 @@ const styles = StyleSheet.create({
   },
   progressHeader: {
     flexDirection: "row",
+    alignItems: "center",
+  },
+  progressItem: {
+    marginBottom: 28,
+    paddingVertical: 6,
+  },
+  progressInfoRow: {
+    flexDirection: "row",
     justifyContent: "space-between",
     alignItems: "center",
+    marginBottom: 14,
+  },
+  subjectName: {
+    fontSize: 16,
+    fontWeight: "600",
+    color: "#111827",
+  },
+  progressText: {
+    fontSize: 14,
+    fontWeight: "600",
+    color: "#2563eb",
   },
   progressBarBackground: {
     height: 8,
     backgroundColor: "#e5e7eb",
     borderRadius: 4,
-    marginVertical: 5,
   },
   progressBarFill: {
     height: 8,
