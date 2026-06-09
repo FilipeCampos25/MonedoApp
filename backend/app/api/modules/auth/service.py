@@ -18,6 +18,7 @@ def autenticar_usuario(username: str, password: str, token: str) -> dict[str, An
     # Ela nao valida manualmente, nao consulta banco diretamente e nao aplica hash.
     # O papel dela e orquestrar as chamadas das camadas corretas e devolver um retorno padronizado.
     try:
+        validar_dados = _resolve_callable(validators, "validar_dados")
         # Primeiro a service localiza a funcao de validacao de usuario disponivel no modulo de validadores.
         validar_usuario = _resolve_callable(
             validators,
@@ -46,6 +47,10 @@ def autenticar_usuario(username: str, password: str, token: str) -> dict[str, An
             "verify_token",
             "check_token",
         )
+
+        dados_validos, _ = validar_dados(username, password)
+        if not dados_validos:
+            return _login_error()
 
         # Passo 1 do fluxo de login: validar se o username pode seguir no contexto de login.
         _executar_validacao_usuario(validar_usuario, username, "login")
@@ -90,6 +95,7 @@ def registrar_usuario(username: str, password: str, token: str) -> dict[str, Any
     # Esta funcao centraliza o fluxo de cadastro.
     # Ela delega validacao, protecao da senha e persistencia para os modulos apropriados.
     try:
+        validar_dados = _resolve_callable(validators, "validar_dados")
         # Localiza a funcao de validacao usada para verificar o username no contexto de cadastro.
         validar_usuario = _resolve_callable(
             validators,
@@ -119,6 +125,12 @@ def registrar_usuario(username: str, password: str, token: str) -> dict[str, Any
             "create_user",
             "inserir_usuario",
         )
+
+        dados_validos, validation_error = validar_dados(username, password)
+        if not dados_validos:
+            return _build_response(False, None, validation_error)
+        if not isinstance(token, str) or not token:
+            return _build_response(False, None, "Token nao pode estar vazio.")
 
         # Passo 1 do fluxo de cadastro: validar o username para o contexto de registro.
         _executar_validacao_usuario(validar_usuario, username, "cadastro")
