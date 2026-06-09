@@ -1,41 +1,49 @@
-from datetime import datetime
-from typing import Dict, Any
+from __future__ import annotations
 
-def validar_tarefa(data: Dict[str, Any]) -> bool:
-   
-    try:
-        # 1. Validação do Title (Não pode ser vazio ou apenas espaços)
-        title = data.get("title")
-        if not title or not str(title).strip():
-            return False
+from collections.abc import Mapping
+from datetime import date, datetime
+from typing import Any
 
-        # 2. Validação da Prioridade
-        # Define quais são as prioridades aceitas no seu sistema
-        prioridades_validas = [
-            "baixa",
-            "media",
-            "alta",
-            "urgente",
-            "low",
-            "medium",
-            "high",
-        ]
-        priority = data.get("priority")
-        if not priority or str(priority).lower() not in prioridades_validas:
-            return False
 
-        # 3. Validação da Data (due_date)
-        # Tenta converter a string da data para um formato real (ex: AAAA-MM-DD)
-        due_date_str = data.get("due_date")
-        if not due_date_str:
-            return False
-            
-        # Tenta validar o formato de data mais comum (Ano-Mês-Dia)
-        datetime.strptime(str(due_date_str), "%Y-%m-%d")
-        
-        # Se passou por todas as checagens sem retornar False
-        return True
+PRIORIDADES_VALIDAS = {
+    "baixa",
+    "media",
+    "alta",
+    "urgente",
+    "low",
+    "medium",
+    "high",
+}
 
-    except (ValueError, TypeError):
-        # Se a conversão da data falhar ou vier um tipo errado, a tarefa é inválida
+
+def validar_tarefa(data: Mapping[str, Any]) -> bool:
+    if not isinstance(data, Mapping):
         return False
+
+    title = data.get("title")
+    if not isinstance(title, str) or not title.strip():
+        return False
+
+    priority = data.get("priority")
+    if (
+        not isinstance(priority, str)
+        or priority.strip().lower() not in PRIORIDADES_VALIDAS
+    ):
+        return False
+
+    return _data_valida(data.get("due_date"))
+
+
+def _data_valida(value: Any) -> bool:
+    if isinstance(value, datetime):
+        return True
+    if isinstance(value, date):
+        return True
+    if not isinstance(value, str) or not value.strip():
+        return False
+
+    try:
+        date.fromisoformat(value.strip())
+    except ValueError:
+        return False
+    return True
