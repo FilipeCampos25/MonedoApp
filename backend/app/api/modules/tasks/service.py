@@ -19,7 +19,8 @@ def criar_tarefa(user_id: Any, data: Any) -> dict[str, bool]:
         )
 
         # O fluxo pedido pela issue comeca executando a validacao da tarefa recebida.
-        validar(data)
+        if validar(data) is False:
+            raise ValueError("Dados da tarefa invalidos.")
         # Depois da validacao, a service delega a criacao da tarefa para a outra camada.
         criar(data)
         # Se todas as chamadas ocorrerem sem erro, a resposta segue o contrato da issue.
