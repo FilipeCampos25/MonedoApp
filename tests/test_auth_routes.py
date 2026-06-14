@@ -113,10 +113,13 @@ class AuthRoutesTests(unittest.TestCase):
         captured = {}
         expected = {"success": True, "user_id": 42}
 
-        def fake_auth(username, password, token):
+        db = object()
+
+        def fake_auth(username, password, token, received_db):
             captured["username"] = username
             captured["password"] = password
             captured["token"] = token
+            captured["db"] = received_db
             return expected
 
         self.auth_routes.autenticar_usuario = fake_auth
@@ -127,22 +130,30 @@ class AuthRoutesTests(unittest.TestCase):
             token="token-1",
         )
 
-        result = self.auth_routes.login(request)
+        result = self.auth_routes.login(request, db)
 
         self.assertIs(result, expected)
         self.assertEqual(
             captured,
-            {"username": "alice", "password": "secret", "token": "token-1"},
+            {
+                "username": "alice",
+                "password": "secret",
+                "token": "token-1",
+                "db": db,
+            },
         )
 
     def test_register_forwards_request_data_and_returns_service_result(self):
         captured = {}
         expected = {"success": False}
 
-        def fake_register(username, password, token):
+        db = object()
+
+        def fake_register(username, password, token, received_db):
             captured["username"] = username
             captured["password"] = password
             captured["token"] = token
+            captured["db"] = received_db
             return expected
 
         self.auth_routes.registrar_usuario = fake_register
@@ -153,12 +164,17 @@ class AuthRoutesTests(unittest.TestCase):
             token="token-2",
         )
 
-        result = self.auth_routes.register(request)
+        result = self.auth_routes.register(request, db)
 
         self.assertIs(result, expected)
         self.assertEqual(
             captured,
-            {"username": "bob", "password": "pass-2", "token": "token-2"},
+            {
+                "username": "bob",
+                "password": "pass-2",
+                "token": "token-2",
+                "db": db,
+            },
         )
 
     def test_router_registers_login_and_register_post_routes(self):
@@ -167,14 +183,23 @@ class AuthRoutesTests(unittest.TestCase):
             for route in self.auth_routes.router.routes
             if "POST" in route.methods
         }
-        api_paths = {
-            route.path
-            for route in self.api_router.router.routes
-            if "POST" in route.methods
-        }
+        api_paths = _router_paths(self.api_router.router, "POST")
 
         self.assertEqual(auth_paths, {"/login", "/register"})
-        self.assertEqual(api_paths, {"/login", "/register"})
+        self.assertTrue({"/login", "/register"}.issubset(api_paths))
+
+
+def _router_paths(router, method):
+    paths = set()
+    for route in router.routes:
+        methods = getattr(route, "methods", set())
+        if method in methods:
+            paths.add(route.path)
+
+        included_router = getattr(route, "original_router", None)
+        if included_router is not None:
+            paths.update(_router_paths(included_router, method))
+    return paths
 
 
 if __name__ == "__main__":

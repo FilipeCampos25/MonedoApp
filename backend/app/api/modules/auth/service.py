@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from typing import Any, Callable
 
+from sqlalchemy.orm import Session
+
 from app.api.modules.auth import repository as auth_repository
 from app.core import security
 from app.utils import validators
@@ -13,7 +15,12 @@ LOGIN_ERROR_MESSAGE = "Credenciais invalidas."
 REGISTER_ERROR_MESSAGE = "Nao foi possivel registrar o usuario."
 
 
-def autenticar_usuario(username: str, password: str, token: str) -> dict[str, Any]:
+def autenticar_usuario(
+    username: str,
+    password: str,
+    token: str,
+    db: Session,
+) -> dict[str, Any]:
     # Esta funcao centraliza o fluxo de autenticacao.
     # Ela nao valida manualmente, nao consulta banco diretamente e nao aplica hash.
     # O papel dela e orquestrar as chamadas das camadas corretas e devolver um retorno padronizado.
@@ -55,7 +62,7 @@ def autenticar_usuario(username: str, password: str, token: str) -> dict[str, An
         # Passo 1 do fluxo de login: validar se o username pode seguir no contexto de login.
         _executar_validacao_usuario(validar_usuario, username, "login")
         # Passo 2 do fluxo de login: buscar o usuario na camada de repositorio.
-        usuario = buscar_usuario(username)
+        usuario = buscar_usuario(db, username)
         # Se o usuario nao existir, a service interrompe o fluxo e retorna erro generico.
         if not usuario:
             return _login_error()
@@ -91,7 +98,12 @@ def autenticar_usuario(username: str, password: str, token: str) -> dict[str, An
         return _login_error()
 
 
-def registrar_usuario(username: str, password: str, token: str) -> dict[str, Any]:
+def registrar_usuario(
+    username: str,
+    password: str,
+    token: str,
+    db: Session,
+) -> dict[str, Any]:
     # Esta funcao centraliza o fluxo de cadastro.
     # Ela delega validacao, protecao da senha e persistencia para os modulos apropriados.
     try:
@@ -135,7 +147,7 @@ def registrar_usuario(username: str, password: str, token: str) -> dict[str, Any
         # Passo 1 do fluxo de cadastro: validar o username para o contexto de registro.
         _executar_validacao_usuario(validar_usuario, username, "cadastro")
         # Passo 2 do fluxo de cadastro: verificar no repositorio se ja existe usuario com esse identificador.
-        usuario_existente = buscar_usuario(username)
+        usuario_existente = buscar_usuario(db, username)
         # Se ja existir, o cadastro nao segue para nao permitir duplicidade.
         if usuario_existente:
             return _build_response(False, None, "Usuario ja existe.")
@@ -143,7 +155,7 @@ def registrar_usuario(username: str, password: str, token: str) -> dict[str, Any
         # Passo 3 do fluxo de cadastro: transformar a senha em hash pela camada de seguranca.
         password_hash = hash_senha(password)
         # Passo 4 do fluxo de cadastro: delegar a persistencia do novo usuario ao repositorio.
-        criar_usuario(username, password_hash, token)
+        criar_usuario(db, username, password_hash, token)
         # O retorno de sucesso do cadastro segue o contrato pedido: success, data nulo e error nulo.
         return _build_response(True, None, None)
     except Exception as exc:

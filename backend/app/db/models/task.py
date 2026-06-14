@@ -1,14 +1,14 @@
 from datetime import date
 
 from sqlalchemy import (
-    String,
-    Boolean,
     BigInteger,
+    Boolean,
+    Date,
     ForeignKey,
+    Integer,
+    String,
     Text,
-    Date
 )
-
 from sqlalchemy.orm import Mapped, mapped_column
 
 from app.db.base import Base
@@ -18,35 +18,49 @@ class Task(Base):
     __tablename__ = "tasks"
 
     id: Mapped[int] = mapped_column(
-        BigInteger,
+        BigInteger().with_variant(Integer, "sqlite"),
         primary_key=True,
-        autoincrement=True
+        autoincrement=True,
     )
 
     user_id: Mapped[int] = mapped_column(
-        ForeignKey("users.id")
+        BigInteger().with_variant(Integer, "sqlite"),
+        ForeignKey("users.id"),
+        nullable=False,
     )
 
     title: Mapped[str] = mapped_column(
         String(120),
-        nullable=False
+        nullable=False,
     )
 
-    description: Mapped[str] = mapped_column(
+    description: Mapped[str | None] = mapped_column(
         Text,
-        nullable=True
+        nullable=True,
     )
 
     priority: Mapped[str] = mapped_column(
         String(10),
-        nullable=False
+        nullable=False,
     )
 
     due_date: Mapped[date] = mapped_column(
-        Date
+        Date,
+        nullable=False,
+    )
+
+    time: Mapped[str | None] = mapped_column(
+        String(20),
+        nullable=True,
+    )
+
+    category: Mapped[str | None] = mapped_column(
+        String(80),
+        nullable=True,
     )
 
     completed: Mapped[bool] = mapped_column(
         Boolean,
-        default=False
+        nullable=False,
+        default=False,
     )

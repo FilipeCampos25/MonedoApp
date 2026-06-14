@@ -1,9 +1,9 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 from pydantic import BaseModel
+from sqlalchemy.orm import Session
 
-# Ajuste minimo de integracao:
-# a rota passa a importar a service pelo caminho real existente no projeto.
 from app.api.modules.auth.service import autenticar_usuario, registrar_usuario
+from app.db.session import get_db
 
 
 router = APIRouter()
@@ -16,18 +16,20 @@ class AuthRequest(BaseModel):
 
 
 @router.post("/login")
-def login(request: AuthRequest):
-    # Esta funcao de rota recebe username, password e token no corpo da requisicao.
-    # O papel dela e apenas encaminhar os dados para a service de autenticacao.
-    resultado = autenticar_usuario(request.username, request.password, request.token)
-    # A rota devolve exatamente a resposta padronizada produzida pela camada de servico.
-    return resultado
+def login(request: AuthRequest, db: Session = Depends(get_db)):
+    return autenticar_usuario(
+        request.username,
+        request.password,
+        request.token,
+        db,
+    )
 
 
 @router.post("/register")
-def register(request: AuthRequest):
-    # Esta funcao de rota recebe username, password e token para o processo de cadastro.
-    # O papel dela e encaminhar os dados para a service responsavel pela regra de negocio.
-    resultado = registrar_usuario(request.username, request.password, request.token)
-    # A rota devolve exatamente a resposta padronizada produzida pela camada de servico.
-    return resultado
+def register(request: AuthRequest, db: Session = Depends(get_db)):
+    return registrar_usuario(
+        request.username,
+        request.password,
+        request.token,
+        db,
+    )
