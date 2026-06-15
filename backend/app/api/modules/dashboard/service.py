@@ -2,13 +2,15 @@ from collections import defaultdict
 from datetime import date, timedelta
 from typing import Any
 
+from sqlalchemy.orm import Session
+
 from app.api.modules.study.repository import listar_sessoes_db
 from app.api.modules.tasks.repository import listar_tarefas
 
 
-def obter_dashboard(user_id: int) -> dict[str, Any]:
-    sessions = listar_sessoes_db(user_id)
-    tasks = listar_tarefas(user_id)
+def obter_dashboard(user_id: int, db: Session) -> dict[str, Any]:
+    sessions = listar_sessoes_db(db, user_id)
+    tasks = listar_tarefas(db, user_id)
     today = date.today()
     week_start = today - timedelta(days=today.weekday())
     durations_by_day: dict[str, int] = defaultdict(int)

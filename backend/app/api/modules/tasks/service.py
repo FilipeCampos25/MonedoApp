@@ -3,8 +3,14 @@ from __future__ import annotations
 from importlib import import_module
 from typing import Any, Callable
 
+from sqlalchemy.orm import Session
 
-def criar_tarefa(user_id: Any, data: Any) -> dict[str, bool]:
+
+def criar_tarefa(
+    user_id: Any,
+    data: Any,
+    db: Session,
+) -> dict[str, bool]:
     # Esta funcao orquestra o fluxo de criacao de uma tarefa para o usuario informado.
     try:
         # Primeiro a service localiza a funcao responsavel por validar os dados da tarefa.
@@ -18,11 +24,14 @@ def criar_tarefa(user_id: Any, data: Any) -> dict[str, bool]:
             "criar_tarefa_db",
         )
 
+        task_data = dict(data)
+        task_data["user_id"] = int(user_id)
+
         # O fluxo pedido pela issue comeca executando a validacao da tarefa recebida.
-        if validar(data) is False:
+        if validar(task_data) is False:
             raise ValueError("Dados da tarefa invalidos.")
         # Depois da validacao, a service delega a criacao da tarefa para a outra camada.
-        criar(data)
+        criar(db, task_data)
         # Se todas as chamadas ocorrerem sem erro, a resposta segue o contrato da issue.
         return {"success": True}
     except Exception:
@@ -30,17 +39,17 @@ def criar_tarefa(user_id: Any, data: Any) -> dict[str, bool]:
         return {"success": False}
 
 
-def listar_tarefas(user_id: Any) -> list[Any]:
+def listar_tarefas(user_id: Any, db: Session) -> list[Any]:
     # Esta funcao orquestra a consulta das tarefas do usuario informado.
     # Ela apenas busca os dados na camada responsavel e devolve a lista recebida.
     buscar = _resolve_callable(
         "app.api.modules.tasks.repository",
         "listar_tarefas",
     )
-    return buscar(user_id)
+    return buscar(db, user_id)
 
 
-def concluir_tarefa(task_id: Any) -> dict[str, bool]:
+def concluir_tarefa(task_id: Any, db: Session) -> dict[str, bool]:
     # Esta funcao orquestra o fluxo de conclusao de uma tarefa existente.
     try:
         # A service localiza a funcao responsavel por atualizar o status da tarefa.
@@ -50,7 +59,7 @@ def concluir_tarefa(task_id: Any) -> dict[str, bool]:
         )
 
         # O fluxo pedido pela issue atualiza a tarefa para o status concluido.
-        atualizar_status(task_id, True)
+        atualizar_status(db, task_id, True)
         # Se a chamada ocorrer sem erro, a resposta segue o contrato definido.
         return {"success": True}
     except Exception:
