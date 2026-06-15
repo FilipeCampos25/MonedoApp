@@ -93,9 +93,14 @@ pip-wheel-metadata/
 *.sqlite3
 *.log
 
-# =========================
-# IDE / Sistema
-# =========================
+# Frontend and package manager artifacts
+node_modules/
+.npm/
+.pnpm-store/
+.yarn/
+
+.expo/
+.expo-shared/
 .vscode/
 .idea/
 *.swp
