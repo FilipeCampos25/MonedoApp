@@ -6,7 +6,6 @@ import secrets
 from collections.abc import Mapping
 from typing import Any
 
-
 ITERACOES_HASH = 600_000
 TAMANHO_SALT = 16
 TAMANHO_TOKEN = 32
@@ -56,6 +55,12 @@ def verificar_senha(password: str, senha_salva: Mapping[str, Any]) -> bool:
 
 def gerar_token() -> str:
     return secrets.token_hex(TAMANHO_TOKEN)
+
+
+def hash_token(token: str) -> str:
+    if not isinstance(token, str) or not token:
+        raise ValueError("Token nao pode estar vazio.")
+    return hashlib.sha256(token.encode("utf-8")).hexdigest()
 
 
 def validar_token(token_input: str, token_salvo: str) -> bool:

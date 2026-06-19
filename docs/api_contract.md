@@ -1,66 +1,66 @@
-# Monedo API
+# Contrato da API Monedo
 
-Base local: `http://localhost:8000`
+Base local: `http://localhost:8000`. Erros usam o formato padrão
+`{"detail": "mensagem"}` e códigos HTTP 4xx.
 
-## Aplicacao
+## Autenticação
 
-- `GET /health`: verifica se a API esta disponivel.
-
-## Autenticacao
-
-- `POST /register`: cadastra um usuario.
-- `POST /login`: autentica um usuario.
-
-Corpo das duas rotas:
+`POST /auth/register` e `POST /auth/login` recebem:
 
 ```json
-{
-  "username": "maria",
-  "password": "senha-segura",
-  "token": "token-do-dispositivo"
-}
+{"username": "maria", "password": "senha-segura"}
 ```
+
+Cadastro retorna 201 e login retorna 200:
+
+```json
+{"user_id": 1, "username": "maria", "token": "token-bearer"}
+```
+
+- `GET /auth/me`: valida e retorna o usuário atual.
+- `POST /auth/logout`: invalida o token e retorna 204.
+
+As rotas abaixo exigem `Authorization: Bearer <token>`. O usuário é sempre
+derivado do token; o cliente não envia `user_id`.
 
 ## Tarefas
 
-- `POST /tasks`: chama `criar_tarefa(user_id, data)`.
-- `GET /tasks?user_id=1`: chama `listar_tarefas(user_id)`.
-- `PATCH /tasks/{id}/complete`: chama `concluir_tarefa(id)`.
-
-Corpo de `POST /tasks`:
+- `POST /tasks`: cria e retorna uma tarefa (201).
+- `GET /tasks`: lista tarefas do usuário atual.
+- `PATCH /tasks/{task_id}/complete`: conclui e retorna a tarefa.
 
 ```json
 {
-  "user_id": 1,
-  "title": "Prova de Matematica",
+  "title": "Prova de Matemática",
   "priority": "alta",
-  "due_date": "2026-06-15",
+  "due_date": "2026-06-20",
   "time": "14:00",
-  "category": "Matematica",
-  "description": "Revisar capitulos 1 a 4"
+  "category": "Matemática",
+  "description": "Revisar capítulos"
 }
 ```
 
-## Estudos
+## Estudos e dashboard
 
-- `POST /study/sessions`: registra uma sessao concluida.
-- `GET /study/sessions?user_id=1`: lista as sessoes do usuario.
-
-Corpo de `POST /study/sessions`:
+- `POST /study/sessions`: persiste uma sessão concluída (201).
+- `GET /study/sessions`: lista sessões do usuário.
+- `GET /dashboard`: retorna hoje, sete dias da semana, meta diária, sequência,
+  totais de tarefas e distribuição semanal por matéria.
 
 ```json
 {
-  "user_id": 1,
   "duration": 3600,
-  "subject": "Matematica",
-  "session_type": "Revisao",
-  "date": "2026-06-09"
+  "subject": "Matemática",
+  "session_type": "Revisão de conteúdo",
+  "date": "2026-06-19"
 }
 ```
 
-`duration` e informada em segundos. `date` e opcional e assume a data
-atual quando omitida.
+`duration` é informada em segundos e `date` é opcional.
 
-## Dashboard
+## Preferências e metadados
 
-- `GET /dashboard?user_id=1`: retorna resumo do dia, semana e tarefas.
+- `GET /preferences`: retorna `daily_goal_seconds` (padrão: 14400).
+- `PUT /preferences`: aceita metas entre 1800 e 43200 segundos.
+- `GET /metadata/form-options`: retorna matérias, categorias, prioridades e
+  tipos de sessão usados nos formulários.

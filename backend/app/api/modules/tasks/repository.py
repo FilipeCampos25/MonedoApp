@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from app.db.models.task import Task
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-
-from app.db.models.task import Task
 
 
 def criar_tarefa_db(db: Session, data: dict[str, Any]) -> dict[str, Any]:
@@ -37,7 +36,9 @@ def criar_tarefa_db(db: Session, data: dict[str, Any]) -> dict[str, Any]:
 
 def listar_tarefas(db: Session, user_id: int) -> list[dict[str, Any]]:
     tasks = db.scalars(
-        select(Task).where(Task.user_id == user_id).order_by(Task.id)
+        select(Task)
+        .where(Task.user_id == user_id)
+        .order_by(Task.completed, Task.due_date, Task.time, Task.id)
     ).all()
     return [_serialize_task(task) for task in tasks]
 
@@ -45,9 +46,12 @@ def listar_tarefas(db: Session, user_id: int) -> list[dict[str, Any]]:
 def atualizar_status_tarefa(
     db: Session,
     task_id: int,
+    user_id: int,
     completed: bool,
 ) -> dict[str, Any]:
-    task = db.get(Task, task_id)
+    task = db.scalar(
+        select(Task).where(Task.id == task_id, Task.user_id == user_id)
+    )
     if task is None:
         raise LookupError("Tarefa nao encontrada.")
 

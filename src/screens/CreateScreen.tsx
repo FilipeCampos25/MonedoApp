@@ -1,361 +1,255 @@
-import React, { useState } from "react";
+import DateTimePicker from "@react-native-community/datetimepicker";
+import { Ionicons } from "@expo/vector-icons";
+import React, { useEffect, useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
+  ActivityIndicator,
+  Alert,
+  Platform,
   Pressable,
   ScrollView,
   StatusBar,
-  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
 import DropDownPicker from "react-native-dropdown-picker";
+import { SafeAreaView } from "react-native-safe-area-context";
 
-export default function CreateScreen({ navigation }: any) {
+import { useAuth } from "../context/AuthContext";
+import { createTask, getFormOptions } from "../services/api";
+
+type PickerItem = { label: string; value: string };
+
+export default function CreateScreen({ navigation }: { navigation: any }) {
+  const { token } = useAuth();
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState<Date | null>(null);
   const [time, setTime] = useState("");
   const [description, setDescription] = useState("");
-
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const selectedDate = date
-    ? new Date(date.split("/").reverse().join("-"))
-    : new Date();
-
-  // CATEGORY
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [category, setCategory] = useState(null);
-  const [categoryItems, setCategoryItems] = useState([
-    { label: "Matemática", value: "Matemática" },
-    { label: "Português", value: "Português" },
-    { label: "História", value: "História" },
-    { label: "Inglês", value: "Inglês" },
-  ]);
-
-  // PRIORITY
-  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [category, setCategory] = useState<string | null>(null);
   const [priority, setPriority] = useState<string | null>(null);
-  const [priorityItems, setPriorityItems] = useState<Array<{
-    label: string;
-    value: string;
-    color: string;
-  }>>([
-    { label: "Baixa", value: "baixa", color: "#22C55E" },
-    { label: "Média", value: "media", color: "#EAB308" },
-    { label: "Alta", value: "alta", color: "#F97316" },
-    { label: "Urgente", value: "urgente", color: "#EF4444" },
-  ]);
+  const [categoryOpen, setCategoryOpen] = useState(false);
+  const [priorityOpen, setPriorityOpen] = useState(false);
+  const [categoryItems, setCategoryItems] = useState<PickerItem[]>([]);
+  const [priorityItems, setPriorityItems] = useState<PickerItem[]>([]);
+  const [showDatePicker, setShowDatePicker] = useState(false);
+  const [optionsError, setOptionsError] = useState("");
+  const [saving, setSaving] = useState(false);
+
+  async function loadOptions() {
+    setOptionsError("");
+    try {
+      const options = await getFormOptions();
+      setCategoryItems(options.categories.map((value) => ({ label: value, value })));
+      setPriorityItems(options.priorities.map((value) => ({
+        label: value.charAt(0).toUpperCase() + value.slice(1),
+        value,
+      })));
+    } catch (requestError) {
+      setOptionsError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível carregar as opções.",
+      );
+    }
+  }
+
+  useEffect(() => {
+    void loadOptions();
+  }, []);
 
   function handleTimeChange(value: string) {
     const digits = value.replace(/[^0-9]/g, "").slice(0, 4);
-    if (digits.length <= 2) {
-      setTime(digits);
+    setTime(digits.length <= 2 ? digits : `${digits.slice(0, 2)}:${digits.slice(2)}`);
+  }
+
+  async function handleSave() {
+    if (!token) return;
+    if (!title.trim() || !date || !priority) {
+      Alert.alert("Campos obrigatórios", "Preencha título, data e prioridade.");
+      return;
+    }
+    if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      Alert.alert("Hora inválida", "Informe uma hora entre 00:00 e 23:59.");
       return;
     }
 
-    setTime(`${digits.slice(0, 2)}:${digits.slice(2)}`);
+    setSaving(true);
+    try {
+      await createTask(token, {
+        title: title.trim(),
+        due_date: toIsoDate(date),
+        time: time || null,
+        category,
+        priority,
+        description: description.trim() || null,
+      });
+      resetForm();
+      navigation.navigate("Estudos");
+    } catch (requestError) {
+      Alert.alert(
+        "Erro ao salvar",
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível salvar a atividade.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function resetForm() {
+    setTitle("");
+    setDate(null);
+    setTime("");
+    setCategory(null);
+    setPriority(null);
+    setDescription("");
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#2563EB" }}>
-      <SafeAreaView style={{ backgroundColor: "#2563EB" }} edges={["top"]}>
+    <View style={styles.root}>
+      <SafeAreaView style={styles.header} edges={["top"]}>
         <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
-
-        {/* HEADER */}
-        <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </Pressable>
-          <Text style={styles.headerTitle}>Adicionar Dados</Text>
-        </View>
+        <Text style={styles.headerTitle}>Adicionar atividade</Text>
       </SafeAreaView>
 
-      {/* CONTEÚDO */}
-      <View style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
-        <ScrollView contentContainerStyle={styles.container}>
-          {/* TÍTULO */}
-          <Text style={styles.label}>Título</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: Prova de Matemática"
-            value={title}
-            onChangeText={setTitle}
-          />
+      <ScrollView contentContainerStyle={styles.container} keyboardShouldPersistTaps="handled">
+        {optionsError ? (
+          <Pressable onPress={() => void loadOptions()} style={styles.errorBox}>
+            <Text style={styles.errorText}>{optionsError} Toque para tentar novamente.</Text>
+          </Pressable>
+        ) : null}
 
-          {/* DATA + HORA */}
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Text style={styles.label}>Data</Text>
-              <Pressable
-                style={styles.inputContainer}
-                onPress={() => setShowDatePicker(true)}
-              >
-                <Ionicons name="calendar-outline" size={20} color="#666" />
-                <Text
-                  style={
-                    date
-                      ? [styles.inputWithIcon, styles.inputText]
-                      : [styles.inputWithIcon, styles.placeholderText]
-                  }
-                >
-                  {date || "dd/mm/aaaa"}
-                </Text>
-              </Pressable>
-            </View>
+        <FieldLabel text="Título" />
+        <TextInput
+          onChangeText={setTitle}
+          placeholder="Ex: Prova de Matemática"
+          style={styles.input}
+          value={title}
+        />
 
-            <View style={styles.half}>
-              <Text style={styles.label}>Hora</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="HH:MM"
-                value={time}
-                onChangeText={handleTimeChange}
-                keyboardType="numeric"
-                maxLength={5}
-              />
-            </View>
+        <View style={styles.row}>
+          <View style={styles.half}>
+            <FieldLabel text="Data" />
+            <Pressable onPress={() => setShowDatePicker(true)} style={styles.dateInput}>
+              <Ionicons name="calendar-outline" size={20} color="#64748B" />
+              <Text style={date ? styles.inputText : styles.placeholder}>
+                {date ? date.toLocaleDateString("pt-BR") : "dd/mm/aaaa"}
+              </Text>
+            </Pressable>
           </View>
-
-          {/* PICKERS */}
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "inline" : "calendar"}
-              onChange={(event, selectedDate) => {
-                setShowDatePicker(false);
-                if (event.type === "dismissed") return;
-                if (selectedDate) {
-                  setDate(selectedDate.toLocaleDateString("pt-BR"));
-                }
-              }}
+          <View style={styles.half}>
+            <FieldLabel text="Hora" />
+            <TextInput
+              keyboardType="numeric"
+              maxLength={5}
+              onChangeText={handleTimeChange}
+              placeholder="HH:MM"
+              style={styles.input}
+              value={time}
             />
-          )}
+          </View>
+        </View>
 
-          {/* CATEGORIA */}
-          <Text style={styles.label}>Categoria</Text>
-          <DropDownPicker
-            open={categoryOpen}
-            value={category}
-            items={categoryItems}
-            setOpen={setCategoryOpen}
-            setValue={setCategory}
-            setItems={setCategoryItems}
-            placeholder="Selecione uma categoria"
-            style={styles.dropdown}
-            zIndex={3000}
-            zIndexInverse={1000}
-            listMode="SCROLLVIEW"
-          />
-
-          {/* PRIORIDADE */}
-          <Text style={styles.label}>Prioridade</Text>
-          <DropDownPicker
-            open={priorityOpen}
-            value={priority}
-            items={priorityItems}
-            setOpen={setPriorityOpen}
-            setValue={setPriority}
-            setItems={setPriorityItems}
-            placeholder="Selecione a prioridade"
-            style={styles.dropdown}
-            zIndex={2000}
-            zIndexInverse={2000}
-            listMode="SCROLLVIEW"
-            renderListItem={(props) => {
-              const item = props.item as {
-                label: string;
-                value: string;
-                color: string;
-              };
-
-              return (
-                <Pressable
-                  onPress={() => {
-                    setPriority(item.value);
-                    setPriorityOpen(false);
-                  }}
-                  style={styles.dropdownItem}
-                >
-                  <View
-                    style={[styles.colorDot, { backgroundColor: item.color }]}
-                  />
-                  <Text>{item.label}</Text>
-                </Pressable>
-              );
+        {showDatePicker ? (
+          <DateTimePicker
+            display={Platform.OS === "ios" ? "inline" : "calendar"}
+            minimumDate={new Date()}
+            mode="date"
+            onChange={(event, selectedDate) => {
+              setShowDatePicker(false);
+              if (event.type !== "dismissed" && selectedDate) setDate(selectedDate);
             }}
+            value={date || new Date()}
           />
+        ) : null}
 
-          {/* DESCRIÇÃO */}
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            placeholder="Detalhes..."
-            multiline
-            value={description}
-            onChangeText={setDescription}
-          />
+        <FieldLabel text="Categoria" />
+        <DropDownPicker
+          items={categoryItems}
+          listMode="SCROLLVIEW"
+          open={categoryOpen}
+          placeholder="Selecione uma categoria"
+          setItems={setCategoryItems}
+          setOpen={setCategoryOpen}
+          setValue={setCategory}
+          style={styles.dropdown}
+          value={category}
+          zIndex={3000}
+          zIndexInverse={1000}
+        />
 
-          {/* SALVAR */}
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => {
-              navigation.navigate("Estudos", {
-                newItem: {
-                  id: Date.now().toString(),
-                  title,
-                  date: date || "Hoje",
-                  time: time || "--:--",
-                  category,
-                  priority,
-                  description,
-                },
-              });
-            }}
-          >
-            <Text style={styles.primaryText}>Salvar</Text>
-          </Pressable>
+        <FieldLabel text="Prioridade" />
+        <DropDownPicker
+          items={priorityItems}
+          listMode="SCROLLVIEW"
+          open={priorityOpen}
+          placeholder="Selecione a prioridade"
+          setItems={setPriorityItems}
+          setOpen={setPriorityOpen}
+          setValue={setPriority}
+          style={styles.dropdown}
+          value={priority}
+          zIndex={2000}
+          zIndexInverse={2000}
+        />
 
-          {/* CANCELAR */}
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.secondaryText}>Cancelar</Text>
-          </Pressable>
-        </ScrollView>
-      </View>
+        <FieldLabel text="Descrição" />
+        <TextInput
+          multiline
+          onChangeText={setDescription}
+          placeholder="Detalhes..."
+          style={[styles.input, styles.description]}
+          value={description}
+        />
+
+        <Pressable
+          disabled={saving}
+          onPress={() => void handleSave()}
+          style={[styles.primaryButton, saving && styles.disabled]}
+        >
+          {saving ? <ActivityIndicator color="#FFFFFF" /> : <Text style={styles.primaryText}>Salvar atividade</Text>}
+        </Pressable>
+        <Pressable disabled={saving} onPress={resetForm} style={styles.secondaryButton}>
+          <Text style={styles.secondaryText}>Limpar formulário</Text>
+        </Pressable>
+      </ScrollView>
     </View>
   );
 }
 
+function FieldLabel({ text }: { text: string }) {
+  return <Text style={styles.label}>{text}</Text>;
+}
+
+function toIsoDate(value: Date) {
+  const year = value.getFullYear();
+  const month = String(value.getMonth() + 1).padStart(2, "0");
+  const day = String(value.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
 const styles = StyleSheet.create({
-  header: {
-    backgroundColor: "#2563EB",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
-  },
-
-  headerTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: "System",
-    marginLeft: 10,
-  },
-
-  container: {
-    padding: 15,
-    backgroundColor: "#F9FAFB",
-    flexGrow: 1,
-  },
-
-  label: {
-    fontSize: 13,
-    fontWeight: "600",
-    fontFamily: "System",
-    marginBottom: 5,
-    marginTop: 10,
-  },
-
-  input: {
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 40,
-    fontFamily: "System",
-    color: "#111827",
-  },
-
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 48,
-  },
-
-  inputWithIcon: {
-    flex: 1,
-    marginHorizontal: 10,
-    fontFamily: "System",
-    color: "#111827",
-  },
-
-  inputText: {
-    fontFamily: "System",
-    color: "#111827",
-  },
-
-  placeholderText: {
-    fontFamily: "System",
-    color: "#9CA3AF",
-  },
-
-  dropdown: {
-    backgroundColor: "#E5E7EB",
-    borderColor: "#ccc",
-    borderRadius: 8,
-    height: 48,
-  },
-
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-  },
-
-  colorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-
-  row: {
-    flexDirection: "row",
-    gap: 10,
-  },
-
-  half: {
-    flex: 1,
-  },
-
-  primaryButton: {
-    marginTop: 20,
-    backgroundColor: "#2563EB",
-    height: 45,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-  },
-
-  primaryText: {
-    color: "#fff",
-    fontWeight: "700",
-    fontFamily: "System",
-    fontSize: 16,
-  },
-
-  secondaryButton: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    height: 45,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
-    backgroundColor: "#fff",
-  },
-
-  secondaryText: {
-    color: "#111",
-    fontFamily: "System",
-  },
+  root: { backgroundColor: "#F8FAFC", flex: 1 },
+  header: { backgroundColor: "#2563EB", padding: 18 },
+  headerTitle: { color: "#FFFFFF", fontSize: 21, fontWeight: "800" },
+  container: { padding: 20, paddingBottom: 40 },
+  label: { color: "#334155", fontSize: 14, fontWeight: "700", marginBottom: 7, marginTop: 14 },
+  input: { backgroundColor: "#FFFFFF", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, minHeight: 48, paddingHorizontal: 12 },
+  description: { height: 90, paddingTop: 12, textAlignVertical: "top" },
+  row: { flexDirection: "row", gap: 12 },
+  half: { flex: 1 },
+  dateInput: { alignItems: "center", backgroundColor: "#FFFFFF", borderColor: "#CBD5E1", borderRadius: 10, borderWidth: 1, flexDirection: "row", minHeight: 48, paddingHorizontal: 12 },
+  inputText: { color: "#0F172A", marginLeft: 8 },
+  placeholder: { color: "#94A3B8", marginLeft: 8 },
+  dropdown: { borderColor: "#CBD5E1", borderRadius: 10 },
+  primaryButton: { alignItems: "center", backgroundColor: "#2563EB", borderRadius: 10, justifyContent: "center", marginTop: 28, minHeight: 52 },
+  primaryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
+  secondaryButton: { alignItems: "center", padding: 16 },
+  secondaryText: { color: "#2563EB", fontWeight: "700" },
+  errorBox: { backgroundColor: "#FEE2E2", borderRadius: 8, padding: 10 },
+  errorText: { color: "#B91C1C" },
+  disabled: { opacity: 0.65 },
 });

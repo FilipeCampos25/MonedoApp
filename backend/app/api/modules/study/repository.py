@@ -3,11 +3,10 @@ from __future__ import annotations
 from datetime import date
 from typing import Any
 
+from app.db.models.study_session import StudySession
 from sqlalchemy import select
 from sqlalchemy.exc import SQLAlchemyError
 from sqlalchemy.orm import Session
-
-from app.db.models.study_session import StudySession
 
 
 def criar_sessao_db(

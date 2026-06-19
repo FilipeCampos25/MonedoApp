@@ -4,7 +4,6 @@ from collections.abc import Mapping
 from datetime import date, datetime
 from typing import Any
 
-
 PRIORIDADES_VALIDAS = {
     "baixa",
     "media",

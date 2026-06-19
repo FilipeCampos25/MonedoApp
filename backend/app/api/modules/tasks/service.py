@@ -1,79 +1,27 @@
-from __future__ import annotations
+from typing import Any
 
-from importlib import import_module
-from typing import Any, Callable
-
+from app.api.modules.tasks.repository import (
+    atualizar_status_tarefa,
+    criar_tarefa_db,
+)
+from app.api.modules.tasks.repository import (
+    listar_tarefas as listar_tarefas_db,
+)
+from app.utils.validators import validar_tarefa
 from sqlalchemy.orm import Session
 
 
-def criar_tarefa(
-    user_id: Any,
-    data: Any,
-    db: Session,
-) -> dict[str, bool]:
-    # Esta funcao orquestra o fluxo de criacao de uma tarefa para o usuario informado.
-    try:
-        # Primeiro a service localiza a funcao responsavel por validar os dados da tarefa.
-        validar = _resolve_callable(
-            "app.utils.validators",
-            "validar_tarefa",
-        )
-        # Em seguida localiza a funcao da camada de persistencia que cria a tarefa no banco.
-        criar = _resolve_callable(
-            "app.api.modules.tasks.repository",
-            "criar_tarefa_db",
-        )
-
-        task_data = dict(data)
-        task_data["user_id"] = int(user_id)
-
-        # O fluxo pedido pela issue comeca executando a validacao da tarefa recebida.
-        if validar(task_data) is False:
-            raise ValueError("Dados da tarefa invalidos.")
-        # Depois da validacao, a service delega a criacao da tarefa para a outra camada.
-        criar(db, task_data)
-        # Se todas as chamadas ocorrerem sem erro, a resposta segue o contrato da issue.
-        return {"success": True}
-    except Exception:
-        # Qualquer falha no fluxo retorna apenas o status booleano padronizado.
-        return {"success": False}
+def criar_tarefa(user_id: int, data: dict[str, Any], db: Session) -> dict[str, Any]:
+    task_data = dict(data)
+    task_data["user_id"] = user_id
+    if not validar_tarefa(task_data):
+        raise ValueError("Dados da tarefa invalidos.")
+    return criar_tarefa_db(db, task_data)
 
 
-def listar_tarefas(user_id: Any, db: Session) -> list[Any]:
-    # Esta funcao orquestra a consulta das tarefas do usuario informado.
-    # Ela apenas busca os dados na camada responsavel e devolve a lista recebida.
-    buscar = _resolve_callable(
-        "app.api.modules.tasks.repository",
-        "listar_tarefas",
-    )
-    return buscar(db, user_id)
+def listar_tarefas(user_id: int, db: Session) -> list[dict[str, Any]]:
+    return listar_tarefas_db(db, user_id)
 
 
-def concluir_tarefa(task_id: Any, db: Session) -> dict[str, bool]:
-    # Esta funcao orquestra o fluxo de conclusao de uma tarefa existente.
-    try:
-        # A service localiza a funcao responsavel por atualizar o status da tarefa.
-        atualizar_status = _resolve_callable(
-            "app.api.modules.tasks.repository",
-            "atualizar_status_tarefa",
-        )
-
-        # O fluxo pedido pela issue atualiza a tarefa para o status concluido.
-        atualizar_status(db, task_id, True)
-        # Se a chamada ocorrer sem erro, a resposta segue o contrato definido.
-        return {"success": True}
-    except Exception:
-        # Qualquer falha no fluxo retorna apenas o status booleano padronizado.
-        return {"success": False}
-
-
-def _resolve_callable(module_path: str, function_name: str) -> Callable[..., Any]:
-    # Esta funcao auxiliar importa dinamicamente a funcao esperada em outra camada.
-    # Ela permite manter a service apenas como orquestradora sem implementar a dependencia.
-    module = import_module(module_path)
-    candidate = getattr(module, function_name, None)
-    if callable(candidate):
-        return candidate
-    raise AttributeError(
-        f"Nenhuma funcao disponivel encontrada em {module_path}: {function_name}"
-    )
+def concluir_tarefa(task_id: int, user_id: int, db: Session) -> dict[str, Any]:
+    return atualizar_status_tarefa(db, task_id, user_id, True)

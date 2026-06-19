@@ -1,79 +1,84 @@
 # MonedoApp
 
-Aplicativo mobile em Expo/React Native com backend FastAPI executado
-separadamente.
+Aplicativo Expo/React Native com API FastAPI, autenticação Bearer e persistência
+SQLAlchemy.
 
 ## Frontend
 
-Requisitos: Node.js e npm.
+Requisitos: Node.js 22.11 ou superior e npm.
 
 ```bash
+cp .env.example .env
 npm ci
 npm start
 ```
 
-O comando principal permanece `npm start`, equivalente a:
+Defina `EXPO_PUBLIC_API_URL` conforme o ambiente:
 
-```bash
-npx expo start
+- web ou simulador iOS local: `http://localhost:8000`;
+- emulador Android Studio: `http://10.0.2.2:8000`;
+- dispositivo físico: IP LAN do computador, por exemplo `http://192.168.0.10:8000`.
+
+### Emulador Android com VPN ou rede corporativa
+
+Quando o emulador não consegue acessar o endereço LAN exibido pelo Metro,
+encaminhe a porta pelo ADB e inicie o Expo em `localhost`. No PowerShell:
+
+```powershell
+$env:ANDROID_HOME = "$env:LOCALAPPDATA\Android\Sdk"
+$env:ANDROID_SDK_ROOT = $env:ANDROID_HOME
+$env:Path = "$env:ANDROID_HOME\platform-tools;$env:ANDROID_HOME\emulator;$env:Path"
+
+adb devices
+adb reverse tcp:8081 tcp:8081
+adb shell am force-stop host.exp.exponent
+$env:REACT_NATIVE_PACKAGER_HOSTNAME = "127.0.0.1"
+npx.cmd expo start --lan -c
+```
+
+O modo `--lan` faz o Metro escutar em IPv4, enquanto
+`REACT_NATIVE_PACKAGER_HOSTNAME` anuncia `127.0.0.1` ao Expo Go. O Metro deve
+exibir `exp://127.0.0.1:8081`. Mantenha o backend em outro terminal, aceitando
+conexões do emulador:
+
+```powershell
+cd backend
+..\.venv\Scripts\python.exe -m uvicorn main:app --reload --host 0.0.0.0
 ```
 
 ## Backend
 
-Crie e ative um ambiente virtual, depois instale as dependencias:
+Requisitos: Python 3.12.
 
 ```bash
 python -m venv .venv
-python -m pip install -r backend/requirements.txt
-```
-
-Copie `backend/.env.example` para `backend/.env` e configure
-`DATABASE_URL`. Para desenvolvimento local, SQLite e suficiente:
-
-```env
-DATABASE_URL=sqlite:///./monedo.db
-```
-
-Exemplo PostgreSQL:
-
-```env
-DATABASE_URL=postgresql://monedo:change-me@localhost:5432/monedo
-```
-
-Inicie o backend separadamente:
-
-```bash
+python -m pip install -r backend/requirements.txt -r backend/requirements-dev.txt
+cp backend/.env.example backend/.env
 cd backend
 python -m uvicorn main:app --reload
 ```
 
-A API fica disponivel em `http://localhost:8000` e o health check em
-`http://localhost:8000/health`.
+A API fica em `http://localhost:8000`, a documentação em `/docs` e o health
+check em `/health`. Quando `DATABASE_URL` não é informado, o backend usa um
+banco SQLite local.
 
-## Testes
-
-Instale as dependencias de desenvolvimento:
-
-```bash
-python -m pip install -r backend/requirements.txt
-python -m pip install -r backend/requirements-dev.txt
-```
-
-Execute toda a suite:
+## Qualidade e testes
 
 ```bash
-python -m pytest
+python -m ruff check backend
+python -m pytest --cov=backend/app --cov-report=term-missing --cov-fail-under=80
+npm run lint
+npm run typecheck
+npm run test:coverage
+npm run export:android
 ```
 
-Os testes HTTP usam SQLite em memoria e substituem `get_db`, portanto nao
-dependem de PostgreSQL nem do banco local.
+Os testes backend usam SQLite em memória. Os testes frontend simulam apenas as
+fronteiras externas, como HTTP e armazenamento seguro. A aplicação de produção
+não contém dados mockados.
 
-## Integracao continua
+## Integração contínua
 
-O workflow `.github/workflows/ci.yml` roda em pushes e pull requests:
-
-- backend: instala dependencias e executa `python -m pytest`;
-- frontend: executa `npm ci` e gera um bundle Android com `expo export`.
-
-O CI nao inicia `expo start`; esse comando permanece destinado ao
-desenvolvimento local.
+Como a raiz Git é o diretório pai de `MonedoApp`, o workflow está em
+`../.github/workflows/ci.yml`. Em pushes e pull requests ele executa lint,
+typecheck, testes com cobertura e exportação do bundle Android.

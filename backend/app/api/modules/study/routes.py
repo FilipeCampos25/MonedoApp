@@ -1,23 +1,31 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
+from typing import Annotated, Any
 
-from app.api.modules.study.schemas import StudySessionCreate
+from app.api.modules.study.schemas import StudySessionCreate, StudySessionResponse
 from app.api.modules.study.service import listar_sessoes, registrar_sessao
+from app.core.dependencies import get_current_user
 from app.db.session import get_db
-
+from fastapi import APIRouter, Depends, status
+from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/study/sessions", tags=["study"])
 
 
-@router.post("")
+@router.post(
+    "",
+    response_model=StudySessionResponse,
+    status_code=status.HTTP_201_CREATED,
+)
 def post_study_session(
     request: StudySessionCreate,
-    db: Session = Depends(get_db),
+    user: Annotated[dict[str, Any], Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
 ):
-    data = request.model_dump(exclude={"user_id"}, mode="json")
-    return registrar_sessao(request.user_id, data, db)
+    return registrar_sessao(user["id"], request.model_dump(mode="json"), db)
 
 
-@router.get("")
-def get_study_sessions(user_id: int, db: Session = Depends(get_db)):
-    return listar_sessoes(user_id, db)
+@router.get("", response_model=list[StudySessionResponse])
+def get_study_sessions(
+    user: Annotated[dict[str, Any], Depends(get_current_user)],
+    db: Annotated[Session, Depends(get_db)],
+):
+    return listar_sessoes(user["id"], db)

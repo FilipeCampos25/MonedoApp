@@ -1,5 +1,6 @@
 from datetime import date
 
+from app.db.base import Base
 from sqlalchemy import (
     BigInteger,
     Boolean,
@@ -10,8 +11,6 @@ from sqlalchemy import (
     Text,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.base import Base
 
 
 class Task(Base):
