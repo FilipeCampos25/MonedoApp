@@ -1,14 +1,10 @@
 from contextlib import asynccontextmanager
 
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
-
 from app.api.router import router as api_router
 from app.db.base import Base
-from app.db.models.study_session import StudySession
-from app.db.models.task import Task
-from app.db.models.user import User
 from app.db.session import engine
+from fastapi import FastAPI
+from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager

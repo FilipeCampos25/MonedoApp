@@ -1,5 +1,6 @@
 from datetime import date
 
+from app.db.base import Base
 from sqlalchemy import (
     BigInteger,
     Date,
@@ -8,8 +9,6 @@ from sqlalchemy import (
     String,
 )
 from sqlalchemy.orm import Mapped, mapped_column
-
-from app.db.base import Base
 
 
 class StudySession(Base):

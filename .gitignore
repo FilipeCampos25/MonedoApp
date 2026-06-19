@@ -71,6 +71,8 @@ __pycache__/
 .coverage
 .coverage.*
 htmlcov/
+.python-deps/
+.pip-tmp/
 
 # Virtual environments
 .venv/

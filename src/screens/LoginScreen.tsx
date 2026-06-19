@@ -1,116 +1,155 @@
+import React, { useState } from "react";
 import {
-  View,
+  ActivityIndicator,
+  KeyboardAvoidingView,
+  Platform,
+  Pressable,
+  StyleSheet,
   Text,
   TextInput,
-  TouchableOpacity,
-  StyleSheet,
+  View,
 } from "react-native";
-import React, { useState } from "react";
 
-export default function LoginScreen({ navigation }: any) {
-  const [email, setEmail] = useState("");
-  const [senha, setSenha] = useState("");
+import { useAuth } from "../context/AuthContext";
 
-  const handleLogin = () => {
-    if (!email || !senha) {
-      alert("Preencha todos os campos");
+export default function LoginScreen() {
+  const { register, signIn } = useAuth();
+  const [mode, setMode] = useState<"login" | "register">("login");
+  const [username, setUsername] = useState("");
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState("");
+  const [submitting, setSubmitting] = useState(false);
+
+  async function handleSubmit() {
+    const normalizedUsername = username.trim();
+    if (normalizedUsername.length < 3 || password.length < 8) {
+      setError("Use um usuário com 3 caracteres e uma senha com pelo menos 8.");
       return;
     }
 
-    navigation.replace("Main");
-  };
+    setSubmitting(true);
+    setError("");
+    try {
+      if (mode === "login") await signIn(normalizedUsername, password);
+      else await register(normalizedUsername, password);
+    } catch (requestError) {
+      setError(
+        requestError instanceof Error
+          ? requestError.message
+          : "Não foi possível concluir a autenticação.",
+      );
+    } finally {
+      setSubmitting(false);
+    }
+  }
 
   return (
-    <View style={styles.container}>
-      <Text style={styles.logo}>ATLAS</Text>
-      <Text style={styles.subtitle}>Faça login para continuar</Text>
+    <KeyboardAvoidingView
+      behavior={Platform.OS === "ios" ? "padding" : undefined}
+      style={styles.container}
+    >
+      <View style={styles.card}>
+        <Text style={styles.logo}>MONEDO</Text>
+        <Text style={styles.subtitle}>
+          {mode === "login" ? "Entre para continuar" : "Crie sua conta"}
+        </Text>
 
-      <Text style={styles.label}>Email</Text>
-      <TextInput
-        placeholder="seu@email.com"
-        value={email}
-        onChangeText={setEmail}
-        style={styles.input}
-      />
+        <Text style={styles.label}>Usuário</Text>
+        <TextInput
+          autoCapitalize="none"
+          autoCorrect={false}
+          editable={!submitting}
+          onChangeText={setUsername}
+          placeholder="seu_usuario"
+          style={styles.input}
+          value={username}
+        />
 
-      <Text style={styles.label}>Senha</Text>
-      <TextInput
-        placeholder="********"
-        value={senha}
-        onChangeText={setSenha}
-        secureTextEntry
-        style={styles.input}
-      />
+        <Text style={styles.label}>Senha</Text>
+        <TextInput
+          editable={!submitting}
+          onChangeText={setPassword}
+          onSubmitEditing={() => void handleSubmit()}
+          placeholder="Mínimo de 8 caracteres"
+          secureTextEntry
+          style={styles.input}
+          value={password}
+        />
 
-      <TouchableOpacity style={styles.button} onPress={handleLogin}>
-        <Text style={styles.buttonText}>Entrar</Text>
-      </TouchableOpacity>
+        {error ? <Text style={styles.error}>{error}</Text> : null}
 
-      <View style={styles.linksContainer}>
-        <TouchableOpacity>
-          <Text style={styles.link}>Esqueceu a senha?</Text>
-        </TouchableOpacity>
+        <Pressable
+          disabled={submitting}
+          onPress={() => void handleSubmit()}
+          style={({ pressed }) => [
+            styles.primaryButton,
+            pressed && styles.pressed,
+            submitting && styles.disabled,
+          ]}
+        >
+          {submitting ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryText}>
+              {mode === "login" ? "Entrar" : "Cadastrar"}
+            </Text>
+          )}
+        </Pressable>
 
-        <TouchableOpacity onPress={() => navigation.replace("Main")}>
-          <Text style={styles.link}>Entrar sem conta</Text>
-        </TouchableOpacity>
+        <Pressable
+          disabled={submitting}
+          onPress={() => {
+            setMode((current) => current === "login" ? "register" : "login");
+            setError("");
+          }}
+          style={styles.switchButton}
+        >
+          <Text style={styles.switchText}>
+            {mode === "login"
+              ? "Ainda não tem conta? Cadastre-se"
+              : "Já tem conta? Faça login"}
+          </Text>
+        </Pressable>
       </View>
-    </View>
+    </KeyboardAvoidingView>
   );
 }
 
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: "#f5f5f5",
+    backgroundColor: "#F5F7FB",
     justifyContent: "center",
-    paddingHorizontal: 25,
+    paddingHorizontal: 24,
   },
+  card: { backgroundColor: "#FFFFFF", borderRadius: 20, padding: 24 },
   logo: {
+    color: "#2563EB",
     fontSize: 32,
-    fontWeight: "bold",
-    fontFamily: "System",
-    color: "#2563eb",
+    fontWeight: "900",
     textAlign: "center",
-    marginBottom: 10,
   },
-  subtitle: {
-    textAlign: "center",
-    color: "#555",
-    fontFamily: "System",
-    marginBottom: 30,
-  },
-  label: {
-    marginBottom: 5,
-    color: "#333",
-    fontFamily: "System",
-  },
+  subtitle: { color: "#64748B", textAlign: "center", margin: 8, marginBottom: 28 },
+  label: { color: "#334155", fontSize: 14, fontWeight: "700", marginBottom: 6 },
   input: {
-    backgroundColor: "#e5e5e5",
+    backgroundColor: "#F1F5F9",
+    borderColor: "#E2E8F0",
     borderRadius: 10,
-    padding: 12,
-    marginBottom: 15,
-    fontFamily: "System",
+    borderWidth: 1,
+    marginBottom: 16,
+    padding: 14,
   },
-  button: {
-    backgroundColor: "#2563eb",
-    padding: 15,
-    borderRadius: 10,
+  error: { color: "#DC2626", marginBottom: 14 },
+  primaryButton: {
     alignItems: "center",
-    marginTop: 10,
+    backgroundColor: "#2563EB",
+    borderRadius: 10,
+    minHeight: 50,
+    justifyContent: "center",
   },
-  buttonText: {
-    color: "#fff",
-    fontWeight: "bold",
-    fontFamily: "System",
-  },
-  linksContainer: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginTop: 15,
-  },
-  link: {
-    color: "#2563eb",
-    fontFamily: "System",
-  },
+  primaryText: { color: "#FFFFFF", fontSize: 16, fontWeight: "800" },
+  switchButton: { alignItems: "center", paddingTop: 20 },
+  switchText: { color: "#2563EB", fontWeight: "600" },
+  disabled: { opacity: 0.65 },
+  pressed: { opacity: 0.8 },
 });

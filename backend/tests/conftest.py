@@ -1,26 +1,14 @@
 from collections.abc import AsyncGenerator, Generator
-from pathlib import Path
-import sys
 
 import httpx
 import pytest
 import pytest_asyncio
+from app.db.base import Base
+from app.db.session import get_db
+from main import app
 from sqlalchemy import create_engine
 from sqlalchemy.orm import Session, sessionmaker
 from sqlalchemy.pool import StaticPool
-
-
-BACKEND_DIR = Path(__file__).resolve().parents[1]
-
-if str(BACKEND_DIR) not in sys.path:
-    sys.path.insert(0, str(BACKEND_DIR))
-
-from app.db.base import Base
-from app.db.models.study_session import StudySession
-from app.db.models.task import Task
-from app.db.models.user import User
-from app.db.session import get_db
-from main import app
 
 
 @pytest.fixture
@@ -31,14 +19,8 @@ def session_factory() -> Generator[sessionmaker[Session], None, None]:
         poolclass=StaticPool,
     )
     Base.metadata.create_all(bind=engine)
-    factory = sessionmaker(
-        bind=engine,
-        autoflush=False,
-        expire_on_commit=False,
-    )
-
+    factory = sessionmaker(bind=engine, autoflush=False, expire_on_commit=False)
     yield factory
-
     Base.metadata.drop_all(bind=engine)
     engine.dispose()
 
@@ -61,7 +43,6 @@ async def client(
 
     app.dependency_overrides[get_db] = override_get_db
     transport = httpx.ASGITransport(app=app)
-
     try:
         async with httpx.AsyncClient(
             transport=transport,
