@@ -7,6 +7,24 @@ on:
 jobs:
   backend:
     runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:18
+        env:
+          POSTGRES_DB: monedo_test
+          POSTGRES_USER: monedo
+          POSTGRES_PASSWORD: monedo
+        ports:
+          - 5432:5432
+        options: >-
+          --health-cmd "pg_isready -U monedo -d monedo_test"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 5
+    env:
+      DATABASE_URL: postgresql://monedo:monedo@localhost:5432/monedo_test
+      JWT_SECRET_KEY: ci-only-secret-key-with-at-least-32-characters
+      APP_TIMEZONE: America/Sao_Paulo
 
     steps:
       - name: Checkout repository
@@ -27,9 +45,11 @@ jobs:
           python -m pip install -r backend/requirements.txt
           python -m pip install -r backend/requirements-dev.txt
 
+      - name: Apply database migrations
+        working-directory: backend
+        run: python -m alembic upgrade head
+
       - name: Run backend tests
-        env:
-          DATABASE_URL: sqlite:///:memory:
         run: python -m pytest
 
   frontend:
@@ -48,7 +68,14 @@ jobs:
       - name: Install frontend dependencies
         run: npm ci
 
+      - name: Check TypeScript
+        run: npm run typecheck
+
+      - name: Run frontend tests
+        run: npm test
+
       - name: Build Expo Android bundle
         env:
           CI: "true"
+          EXPO_PUBLIC_API_URL: http://127.0.0.1:8000
         run: npx expo export --platform android --output-dir "$RUNNER_TEMP/expo-export"

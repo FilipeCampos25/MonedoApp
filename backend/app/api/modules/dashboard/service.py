@@ -1,41 +1,60 @@
 from collections import defaultdict
-from datetime import date, timedelta
-from typing import Any
+from datetime import datetime, timedelta
+from zoneinfo import ZoneInfo
 
 from sqlalchemy.orm import Session
 
-from app.api.modules.study.repository import listar_sessoes_db
-from app.api.modules.tasks.repository import listar_tarefas
+from app.api.modules.study.repository import list_sessions
+from app.api.modules.tasks.repository import list_tasks, serialize_task
+from app.core.config import get_settings
 
 
-def obter_dashboard(user_id: int, db: Session) -> dict[str, Any]:
-    sessions = listar_sessoes_db(db, user_id)
-    tasks = listar_tarefas(db, user_id)
-    today = date.today()
+def get_dashboard(user_id: int, db: Session) -> dict:
+    sessions = list_sessions(db, user_id)
+    tasks = list_tasks(db, user_id)
+    today = datetime.now(
+        ZoneInfo(get_settings().app_timezone)
+    ).date()
     week_start = today - timedelta(days=today.weekday())
-    durations_by_day: dict[str, int] = defaultdict(int)
+    week_dates = [week_start + timedelta(days=offset) for offset in range(7)]
 
+    durations_by_day: dict = defaultdict(int)
+    durations_by_subject: dict[str, int] = defaultdict(int)
     for session in sessions:
-        session_date = str(session["date"])
-        durations_by_day[session_date] += int(session["duration"])
+        durations_by_day[session.session_date] += session.duration_seconds
+        if session.session_date in week_dates:
+            durations_by_subject[session.subject] += session.duration_seconds
 
-    today_key = today.isoformat()
-    weekly_seconds = [
-        durations_by_day[(week_start + timedelta(days=offset)).isoformat()]
-        for offset in range(7)
-    ]
+    pending_tasks = [task for task in tasks if not task.completed]
+    upcoming = sorted(
+        (task for task in pending_tasks if task.due_date >= today),
+        key=lambda task: (task.due_date, task.time or "", task.id),
+    )[:4]
 
     return {
         "today": {
-            "study_seconds": durations_by_day[today_key],
+            "study_seconds": durations_by_day[today],
             "sessions": sum(
-                1 for session in sessions if str(session["date"]) == today_key
+                1 for session in sessions if session.session_date == today
             ),
         },
-        "week": {"study_seconds_by_day": weekly_seconds},
+        "week": {
+            "dates": week_dates,
+            "study_seconds_by_day": [
+                durations_by_day[day] for day in week_dates
+            ],
+        },
         "tasks": {
             "total": len(tasks),
-            "completed": sum(1 for task in tasks if task["completed"]),
-            "pending": sum(1 for task in tasks if not task["completed"]),
+            "completed": len(tasks) - len(pending_tasks),
+            "pending": len(pending_tasks),
+            "upcoming": [serialize_task(task) for task in upcoming],
         },
+        "subjects": [
+            {"subject": subject, "study_seconds": seconds}
+            for subject, seconds in sorted(
+                durations_by_subject.items(),
+                key=lambda item: (-item[1], item[0].lower()),
+            )
+        ],
     }

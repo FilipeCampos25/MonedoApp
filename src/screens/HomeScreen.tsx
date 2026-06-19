@@ -1,325 +1,406 @@
-import { View, Text, StyleSheet, ScrollView, Dimensions } from "react-native";
-import { useState, useEffect } from "react";
+import { Ionicons } from "@expo/vector-icons";
+import { useFocusEffect } from "@react-navigation/native";
+import { useCallback, useState } from "react";
+import {
+  ActivityIndicator,
+  Alert,
+  Pressable,
+  RefreshControl,
+  ScrollView,
+  StyleSheet,
+  Text,
+  View,
+} from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { BarChart } from "react-native-chart-kit";
-import { MaterialIcons, Ionicons } from "@expo/vector-icons";
-import React from "react";
 
-const screenWidth = Dimensions.get("window").width;
+import { useAuth } from "../context/AuthContext";
+import { Dashboard, Task } from "../services/api";
 
-export default function HomeScreen({ route }: any) {
-  const [activities, setActivities] = useState([
-    { title: "Prova de Matemática", date: "Amanhã", priority: "alta" },
-  ]);
-  const [currentDate, setCurrentDate] = useState<string>("");
 
-  useEffect(() => {
-    const today = new Date();
-    const formattedDate = today.toLocaleDateString("pt-BR", {
-      day: "numeric",
-      month: "long",
-    });
-    setCurrentDate(formattedDate);
-  }, []);
+export default function HomeScreen() {
+  const { request, session, signOut } = useAuth();
+  const [dashboard, setDashboard] = useState<Dashboard | null>(null);
+  const [tasks, setTasks] = useState<Task[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [refreshing, setRefreshing] = useState(false);
 
-  useEffect(() => {
-    if (route?.params?.newItem) {
-      setActivities((prev) => {
-        const exists = prev.find(
-          (item) => item.title === route.params.newItem.title,
-        );
-        if (exists) return prev;
-        return [...prev, route.params.newItem];
-      });
+  const load = useCallback(async (silent = false) => {
+    if (!silent) {
+      setLoading(true);
     }
-  }, [route?.params]);
-
-  const getPriorityStyle = (priority: string) => {
-    switch (priority) {
-      case "baixa":
-        return { color: "#22C55E" };
-      case "media":
-        return { color: "#EAB308" };
-      case "alta":
-        return { color: "#F97316" };
-      case "urgente":
-        return { color: "#EF4444" };
-      default:
-        return { color: "#6B7280" };
+    try {
+      const [dashboardData, taskData] = await Promise.all([
+        request<Dashboard>("/dashboard"),
+        request<Task[]>("/tasks"),
+      ]);
+      setDashboard(dashboardData);
+      setTasks(taskData);
+    } catch (error) {
+      Alert.alert(
+        "Erro ao carregar",
+        error instanceof Error ? error.message : "Tente novamente.",
+      );
+    } finally {
+      setLoading(false);
+      setRefreshing(false);
     }
-  };
+  }, [request]);
+
+  useFocusEffect(
+    useCallback(() => {
+      void load();
+    }, [load]),
+  );
+
+  async function completeTask(taskId: number) {
+    try {
+      await request<Task>(`/tasks/${taskId}/complete`, { method: "PATCH" });
+      await load(true);
+    } catch (error) {
+      Alert.alert(
+        "Erro ao concluir",
+        error instanceof Error ? error.message : "Tente novamente.",
+      );
+    }
+  }
+
+  const weekValues = dashboard?.week.study_seconds_by_day ?? [];
+  const maxWeekValue = Math.max(...weekValues, 1);
+  const pendingTasks = tasks.filter((task) => !task.completed);
 
   return (
-    <SafeAreaView style={styles.container}>
-      <ScrollView showsVerticalScrollIndicator={false}>
-        {/* TÍTULO */}
-        <Text style={styles.title}>Meus Estudos</Text>
-
-        {/* DATA */}
-        <View style={styles.card}>
-          <Text style={styles.subtitle}>Hoje</Text>
-          <Text style={styles.date}>{currentDate}</Text>
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <View>
+          <Text style={styles.title}>Meus estudos</Text>
+          <Text style={styles.email}>{session?.user.email}</Text>
         </View>
+        <Pressable onPress={() => void signOut()} style={styles.logoutButton}>
+          <Ionicons name="log-out-outline" size={23} color="#2563EB" />
+        </Pressable>
+      </View>
 
-        {/* CARDS DE RESUMO */}
-        <View style={styles.row}>
-          <View style={styles.smallCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.bodyText}>Horas Hoje</Text>
-              <MaterialIcons name="access-time" size={26} color="#3b82f6" />
-            </View>
-            <Text style={styles.bigNumber}>3.5h</Text>
-            <Text style={[styles.meta, styles.bodyText]}>Meta: 4h por dia</Text>
-          </View>
-
-          <View style={styles.smallCard}>
-            <View style={styles.cardHeader}>
-              <Text style={styles.bodyText}>Sessões</Text>
-              <Ionicons name="book-outline" size={26} color="#10b981" />
-            </View>
-            <Text style={styles.bigNumber}>7</Text>
-            <Text style={styles.bodyText}>Sessions completas</Text>
-          </View>
+      {loading && !dashboard ? (
+        <View style={styles.loading}>
+          <ActivityIndicator size="large" color="#2563EB" />
         </View>
-
-        {/* GRÁFICO */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Horas de Estudo - Semana</Text>
-
-          <View style={styles.chartWrapper}>
-            <BarChart
-              data={{
-                labels: ["Seg", "Ter", "Qua", "Qui", "Sex", "Sab", "Dom"],
-                datasets: [{ data: [2.5, 3.8, 3.2, 4.5, 3.9, 2.0, 5.0] }],
+      ) : (
+        <ScrollView
+          contentContainerStyle={styles.content}
+          refreshControl={
+            <RefreshControl
+              refreshing={refreshing}
+              onRefresh={() => {
+                setRefreshing(true);
+                void load(true);
               }}
-              width={screenWidth - 80}
-              height={220}
-              yAxisLabel=""
-              yAxisSuffix="h"
-              chartConfig={{
-                backgroundGradientFrom: "#fff",
-                backgroundGradientTo: "#fff",
-                decimalPlaces: 1,
-                color: (opacity = 1) => `rgba(59, 130, 246, ${opacity})`,
-                labelColor: () => "#6B7280",
-                fillShadowGradient: "#3B82F6",
-                fillShadowGradientOpacity: 1,
-              }}
-              style={{
-                borderRadius: 12,
-              }}
+            />
+          }
+        >
+          <View style={styles.statsRow}>
+            <SummaryCard
+              icon="time-outline"
+              label="Hoje"
+              value={formatDuration(dashboard?.today.study_seconds ?? 0)}
+            />
+            <SummaryCard
+              icon="book-outline"
+              label="Sessoes"
+              value={String(dashboard?.today.sessions ?? 0)}
             />
           </View>
 
-          <Text style={styles.totalText}>Total: 24h nesta semana</Text>
-        </View>
-
-        {/* PROGRESSO */}
-        <View style={styles.card}>
-          <View style={styles.progressHeader}>
-            <MaterialIcons name="track-changes" size={22} color="#2563eb" />
-            <Text
-              style={[styles.sectionTitle, { marginLeft: 8, marginBottom: 0 }]}
-            >
-              Progresso das Matérias
-            </Text>
-          </View>
-
-          {[
-            { name: "Matemática", progress: 75 },
-            { name: "Português", progress: 60 },
-            { name: "História", progress: 85 },
-            { name: "Inglês", progress: 45 },
-          ].map((item, index) => (
-            <View key={index} style={styles.progressItem}>
-              <View style={styles.progressInfoRow}>
-                <Text style={styles.subjectName}>{item.name}</Text>
-                <Text style={styles.progressText}>{item.progress}%</Text>
-              </View>
-              <View style={styles.progressBarBackground}>
-                <View
-                  style={[
-                    styles.progressBarFill,
-                    { width: `${item.progress}%` },
-                  ]}
-                />
-              </View>
-            </View>
-          ))}
-        </View>
-
-        {/* ATIVIDADES */}
-        <View style={styles.card}>
-          <Text style={styles.sectionTitle}>Próximas Atividades</Text>
-
-          {activities.map((item, index) => {
-            const style = getPriorityStyle(item.priority);
-
-            return (
-              <View key={index} style={styles.activityItem}>
-                <View style={{ flexDirection: "row", alignItems: "center" }}>
-                  {/* BOLINHA */}
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Ultimos 7 dias</Text>
+            <View style={styles.chart}>
+              {weekValues.map((seconds, index) => (
+                <View key={dashboard?.week.dates[index] ?? index} style={styles.barColumn}>
+                  <Text style={styles.barValue}>
+                    {seconds > 0 ? `${Math.round(seconds / 60)}m` : ""}
+                  </Text>
                   <View
-                    style={[styles.dot, { backgroundColor: style.color }]}
-                  />
-
-                  <View>
-                    <Text style={[styles.bodyText, { fontWeight: "bold" }]}>
-                      {item.title}
-                    </Text>
-                    <Text style={styles.bodyText}>{item.date}</Text>
-                  </View>
-                </View>
-
-                {/* PRIORIDADE */}
-                <View
-                  style={[styles.priority, { backgroundColor: style.color }]}
-                >
-                  <Text
                     style={[
-                      styles.bodyText,
-                      { color: "#FFFFFF", fontWeight: "600" },
+                      styles.bar,
+                      {
+                        height: Math.max(
+                          5,
+                          (seconds / maxWeekValue) * 92,
+                        ),
+                      },
                     ]}
-                  >
-                    {item.priority}
+                  />
+                  <Text style={styles.barLabel}>
+                    {weekday(dashboard?.week.dates[index])}
                   </Text>
                 </View>
-              </View>
-            );
-          })}
-        </View>
-      </ScrollView>
+              ))}
+            </View>
+          </View>
+
+          <View style={styles.card}>
+            <View style={styles.sectionHeader}>
+              <Text style={styles.sectionTitle}>Tarefas pendentes</Text>
+              <Text style={styles.badge}>
+                {dashboard?.tasks.pending ?? pendingTasks.length}
+              </Text>
+            </View>
+            {pendingTasks.length === 0 ? (
+              <Text style={styles.emptyText}>Nenhuma tarefa pendente.</Text>
+            ) : (
+              pendingTasks.map((task) => (
+                <View key={task.id} style={styles.taskRow}>
+                  <View style={styles.taskInfo}>
+                    <Text style={styles.taskTitle}>{task.title}</Text>
+                    <Text style={styles.taskMeta}>
+                      {formatDate(task.due_date)}
+                      {task.time ? ` as ${task.time}` : ""}
+                      {task.category ? ` - ${task.category}` : ""}
+                    </Text>
+                  </View>
+                  <Pressable
+                    accessibilityLabel={`Concluir ${task.title}`}
+                    onPress={() => void completeTask(task.id)}
+                    style={styles.completeButton}
+                  >
+                    <Ionicons name="checkmark" size={22} color="#FFFFFF" />
+                  </Pressable>
+                </View>
+              ))
+            )}
+          </View>
+
+          <View style={styles.card}>
+            <Text style={styles.sectionTitle}>Estudo por materia</Text>
+            {(dashboard?.subjects.length ?? 0) === 0 ? (
+              <Text style={styles.emptyText}>Registre uma sessao no cronometro.</Text>
+            ) : (
+              dashboard?.subjects.map((subject) => (
+                <View key={subject.subject} style={styles.subjectRow}>
+                  <Text style={styles.subjectName}>{subject.subject}</Text>
+                  <Text style={styles.subjectTime}>
+                    {formatDuration(subject.study_seconds)}
+                  </Text>
+                </View>
+              ))
+            )}
+          </View>
+        </ScrollView>
+      )}
     </SafeAreaView>
   );
 }
 
+
+function SummaryCard({
+  icon,
+  label,
+  value,
+}: {
+  icon: keyof typeof Ionicons.glyphMap;
+  label: string;
+  value: string;
+}) {
+  return (
+    <View style={styles.summaryCard}>
+      <Ionicons name={icon} size={26} color="#2563EB" />
+      <Text style={styles.summaryLabel}>{label}</Text>
+      <Text style={styles.summaryValue}>{value}</Text>
+    </View>
+  );
+}
+
+
+function formatDuration(seconds: number): string {
+  const hours = Math.floor(seconds / 3600);
+  const minutes = Math.floor((seconds % 3600) / 60);
+  return hours > 0 ? `${hours}h ${minutes}m` : `${minutes} min`;
+}
+
+
+function formatDate(value: string): string {
+  return new Date(`${value}T12:00:00`).toLocaleDateString("pt-BR");
+}
+
+
+function weekday(value?: string): string {
+  if (!value) {
+    return "";
+  }
+  return new Date(`${value}T12:00:00`)
+    .toLocaleDateString("pt-BR", { weekday: "short" })
+    .replace(".", "");
+}
+
+
 const styles = StyleSheet.create({
-  container: {
+  safeArea: {
+    backgroundColor: "#F8FAFC",
     flex: 1,
-    backgroundColor: "#F5F5F5",
-    paddingHorizontal: 16,
+  },
+  header: {
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    borderBottomColor: "#E2E8F0",
+    borderBottomWidth: 1,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    paddingHorizontal: 20,
+    paddingVertical: 14,
   },
   title: {
+    color: "#2563EB",
+    fontSize: 25,
+    fontWeight: "800",
+  },
+  email: {
+    color: "#64748B",
+    fontSize: 12,
+    marginTop: 2,
+  },
+  logoutButton: {
+    alignItems: "center",
+    backgroundColor: "#EFF6FF",
+    borderRadius: 22,
+    height: 44,
+    justifyContent: "center",
+    width: 44,
+  },
+  loading: {
+    alignItems: "center",
+    flex: 1,
+    justifyContent: "center",
+  },
+  content: {
+    gap: 14,
+    padding: 16,
+    paddingBottom: 30,
+  },
+  statsRow: {
+    flexDirection: "row",
+    gap: 12,
+  },
+  summaryCard: {
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    borderWidth: 1,
+    flex: 1,
+    padding: 16,
+  },
+  summaryLabel: {
+    color: "#64748B",
+    fontSize: 13,
+    marginTop: 12,
+  },
+  summaryValue: {
+    color: "#0F172A",
     fontSize: 22,
-    fontWeight: "bold",
-    fontFamily: "System",
-    color: "#2563eb",
-    marginTop: 10,
-    marginBottom: 16,
+    fontWeight: "800",
+    marginTop: 4,
   },
   card: {
-    backgroundColor: "#fff",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#E2E8F0",
+    borderRadius: 16,
+    borderWidth: 1,
     padding: 16,
-    borderRadius: 12,
-    marginBottom: 24,
   },
-  subtitle: {
-    color: "#6b7280",
-    fontFamily: "System",
-  },
-  date: {
-    fontSize: 18,
-    fontWeight: "bold",
-    fontFamily: "System",
-  },
-  row: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    marginBottom: 24,
-  },
-  smallCard: {
-    backgroundColor: "#fff",
-    padding: 16,
-    borderRadius: 12,
-    width: "48%",
-  },
-  cardHeader: {
-    flexDirection: "row",
-    justifyContent: "space-between",
+  sectionHeader: {
     alignItems: "center",
-  },
-  bigNumber: {
-    fontSize: 22,
-    fontWeight: "bold",
-    fontFamily: "System",
-    marginVertical: 8,
-  },
-  meta: {
-    color: "#6b7280",
-    fontFamily: "System",
-    fontSize: 14,
+    flexDirection: "row",
+    justifyContent: "space-between",
   },
   sectionTitle: {
-    fontWeight: "bold",
-    fontFamily: "System",
-    marginBottom: 16,
+    color: "#0F172A",
+    fontSize: 17,
+    fontWeight: "800",
   },
-  chartWrapper: {
-    marginTop: 10,
-    alignItems: "center",
-  },
-  totalText: {
-    marginTop: 10,
+  badge: {
+    backgroundColor: "#DBEAFE",
+    borderRadius: 12,
+    color: "#1D4ED8",
+    fontWeight: "800",
+    minWidth: 24,
+    paddingHorizontal: 8,
+    paddingVertical: 3,
     textAlign: "center",
-    color: "#6b7280",
-    fontFamily: "System",
   },
-  progressHeader: {
+  chart: {
+    alignItems: "flex-end",
     flexDirection: "row",
+    height: 135,
+    justifyContent: "space-between",
+    marginTop: 16,
+  },
+  barColumn: {
     alignItems: "center",
+    flex: 1,
+    justifyContent: "flex-end",
   },
-  progressItem: {
-    marginBottom: 28,
-    paddingVertical: 6,
+  bar: {
+    backgroundColor: "#3B82F6",
+    borderRadius: 5,
+    maxWidth: 28,
+    width: "55%",
   },
-  progressInfoRow: {
+  barLabel: {
+    color: "#64748B",
+    fontSize: 11,
+    marginTop: 6,
+  },
+  barValue: {
+    color: "#475569",
+    fontSize: 9,
+    marginBottom: 3,
+  },
+  taskRow: {
+    alignItems: "center",
+    borderTopColor: "#E2E8F0",
+    borderTopWidth: 1,
+    flexDirection: "row",
+    marginTop: 12,
+    paddingTop: 12,
+  },
+  taskInfo: {
+    flex: 1,
+    paddingRight: 12,
+  },
+  taskTitle: {
+    color: "#0F172A",
+    fontSize: 15,
+    fontWeight: "700",
+  },
+  taskMeta: {
+    color: "#64748B",
+    fontSize: 12,
+    marginTop: 4,
+  },
+  completeButton: {
+    alignItems: "center",
+    backgroundColor: "#16A34A",
+    borderRadius: 18,
+    height: 36,
+    justifyContent: "center",
+    width: 36,
+  },
+  emptyText: {
+    color: "#64748B",
+    marginTop: 12,
+  },
+  subjectRow: {
+    borderTopColor: "#E2E8F0",
+    borderTopWidth: 1,
     flexDirection: "row",
     justifyContent: "space-between",
-    alignItems: "center",
-    marginBottom: 14,
+    marginTop: 12,
+    paddingTop: 12,
   },
   subjectName: {
-    fontSize: 16,
-    fontWeight: "600",
-    color: "#111827",
+    color: "#334155",
+    fontWeight: "700",
   },
-  progressText: {
-    fontSize: 14,
-    fontWeight: "600",
-    color: "#2563eb",
-  },
-  progressBarBackground: {
-    height: 8,
-    backgroundColor: "#e5e7eb",
-    borderRadius: 4,
-  },
-  progressBarFill: {
-    height: 8,
-    backgroundColor: "#2563eb",
-    borderRadius: 4,
-  },
-  bodyText: {
-    fontFamily: "System",
-    color: "#111827",
-  },
-  activityItem: {
-    flexDirection: "row",
-    justifyContent: "space-between",
-    backgroundColor: "#f9fafb",
-    padding: 12,
-    borderRadius: 10,
-    marginTop: 10,
-    alignItems: "center",
-  },
-  priority: {
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: 10,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 10,
+  subjectTime: {
+    color: "#2563EB",
+    fontWeight: "800",
   },
 });

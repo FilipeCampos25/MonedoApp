@@ -1,79 +1,31 @@
-from __future__ import annotations
-
-from importlib import import_module
-from typing import Any, Callable
-
+from fastapi import HTTPException, status
 from sqlalchemy.orm import Session
 
-
-def criar_tarefa(
-    user_id: Any,
-    data: Any,
-    db: Session,
-) -> dict[str, bool]:
-    # Esta funcao orquestra o fluxo de criacao de uma tarefa para o usuario informado.
-    try:
-        # Primeiro a service localiza a funcao responsavel por validar os dados da tarefa.
-        validar = _resolve_callable(
-            "app.utils.validators",
-            "validar_tarefa",
-        )
-        # Em seguida localiza a funcao da camada de persistencia que cria a tarefa no banco.
-        criar = _resolve_callable(
-            "app.api.modules.tasks.repository",
-            "criar_tarefa_db",
-        )
-
-        task_data = dict(data)
-        task_data["user_id"] = int(user_id)
-
-        # O fluxo pedido pela issue comeca executando a validacao da tarefa recebida.
-        if validar(task_data) is False:
-            raise ValueError("Dados da tarefa invalidos.")
-        # Depois da validacao, a service delega a criacao da tarefa para a outra camada.
-        criar(db, task_data)
-        # Se todas as chamadas ocorrerem sem erro, a resposta segue o contrato da issue.
-        return {"success": True}
-    except Exception:
-        # Qualquer falha no fluxo retorna apenas o status booleano padronizado.
-        return {"success": False}
+from app.api.modules.tasks import repository
+from app.api.modules.tasks.schemas import TaskCreate
 
 
-def listar_tarefas(user_id: Any, db: Session) -> list[Any]:
-    # Esta funcao orquestra a consulta das tarefas do usuario informado.
-    # Ela apenas busca os dados na camada responsavel e devolve a lista recebida.
-    buscar = _resolve_callable(
-        "app.api.modules.tasks.repository",
-        "listar_tarefas",
+def create_task(user_id: int, request: TaskCreate, db: Session) -> dict:
+    task = repository.create_task(
+        db,
+        user_id,
+        request.model_dump(),
     )
-    return buscar(db, user_id)
+    return repository.serialize_task(task)
 
 
-def concluir_tarefa(task_id: Any, db: Session) -> dict[str, bool]:
-    # Esta funcao orquestra o fluxo de conclusao de uma tarefa existente.
-    try:
-        # A service localiza a funcao responsavel por atualizar o status da tarefa.
-        atualizar_status = _resolve_callable(
-            "app.api.modules.tasks.repository",
-            "atualizar_status_tarefa",
+def list_tasks(user_id: int, db: Session) -> list[dict]:
+    return [
+        repository.serialize_task(task)
+        for task in repository.list_tasks(db, user_id)
+    ]
+
+
+def complete_task(user_id: int, task_id: int, db: Session) -> dict:
+    task = repository.complete_task(db, user_id, task_id)
+    if task is None:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail="Tarefa nao encontrada.",
         )
-
-        # O fluxo pedido pela issue atualiza a tarefa para o status concluido.
-        atualizar_status(db, task_id, True)
-        # Se a chamada ocorrer sem erro, a resposta segue o contrato definido.
-        return {"success": True}
-    except Exception:
-        # Qualquer falha no fluxo retorna apenas o status booleano padronizado.
-        return {"success": False}
-
-
-def _resolve_callable(module_path: str, function_name: str) -> Callable[..., Any]:
-    # Esta funcao auxiliar importa dinamicamente a funcao esperada em outra camada.
-    # Ela permite manter a service apenas como orquestradora sem implementar a dependencia.
-    module = import_module(module_path)
-    candidate = getattr(module, function_name, None)
-    if callable(candidate):
-        return candidate
-    raise AttributeError(
-        f"Nenhuma funcao disponivel encontrada em {module_path}: {function_name}"
-    )
+    return repository.serialize_task(task)

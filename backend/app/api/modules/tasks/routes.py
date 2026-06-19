@@ -1,30 +1,43 @@
-from fastapi import APIRouter, Depends
+from typing import Annotated
+
+from fastapi import APIRouter, Depends, status
 from sqlalchemy.orm import Session
 
-from app.api.modules.tasks.schemas import TaskCreate
-from app.api.modules.tasks.service import (
-    concluir_tarefa,
-    criar_tarefa,
-    listar_tarefas,
-)
+from app.api.modules.tasks import service
+from app.api.modules.tasks.schemas import TaskCreate, TaskResponse
+from app.core.dependencies import CurrentUser
 from app.db.session import get_db
 
 
 router = APIRouter(prefix="/tasks", tags=["tasks"])
+Database = Annotated[Session, Depends(get_db)]
 
 
-@router.post("")
-def post_task(request: TaskCreate, db: Session = Depends(get_db)):
-    data = request.model_dump(exclude={"user_id"}, mode="json")
-    data["user_id"] = request.user_id
-    return criar_tarefa(request.user_id, data, db)
+@router.post(
+    "",
+    response_model=TaskResponse,
+    status_code=status.HTTP_201_CREATED,
+)
+def post_task(
+    request: TaskCreate,
+    current_user: CurrentUser,
+    db: Database,
+) -> dict:
+    return service.create_task(current_user.id, request, db)
 
 
-@router.get("")
-def get_tasks(user_id: int, db: Session = Depends(get_db)):
-    return listar_tarefas(user_id, db)
+@router.get("", response_model=list[TaskResponse])
+def get_tasks(
+    current_user: CurrentUser,
+    db: Database,
+) -> list[dict]:
+    return service.list_tasks(current_user.id, db)
 
 
-@router.patch("/{id}/complete")
-def complete_task(id: int, db: Session = Depends(get_db)):
-    return concluir_tarefa(id, db)
+@router.patch("/{task_id}/complete", response_model=TaskResponse)
+def complete_task(
+    task_id: int,
+    current_user: CurrentUser,
+    db: Database,
+) -> dict:
+    return service.complete_task(current_user.id, task_id, db)

@@ -1,12 +1,18 @@
 from datetime import date as Date
-from typing import Optional
 
 from pydantic import BaseModel, Field
 
 
 class StudySessionCreate(BaseModel):
-    user_id: int = Field(gt=0)
-    duration: int = Field(gt=0, description="Duracao em segundos.")
+    duration: int = Field(gt=0, le=86_400)
     subject: str = Field(min_length=1, max_length=80)
-    session_type: Optional[str] = Field(default=None, max_length=80)
-    date: Optional[Date] = None
+    session_type: str | None = Field(default=None, max_length=80)
+    date: Date | None = None
+
+
+class StudySessionResponse(BaseModel):
+    id: int
+    duration: int
+    subject: str
+    session_type: str | None
+    date: Date

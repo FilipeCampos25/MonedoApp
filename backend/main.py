@@ -1,27 +1,21 @@
-from contextlib import asynccontextmanager
+from typing import Annotated
 
-from fastapi import FastAPI
+from fastapi import Depends, FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from sqlalchemy import text
+from sqlalchemy.orm import Session
 
 from app.api.router import router as api_router
-from app.db.base import Base
-from app.db.models.study_session import StudySession
-from app.db.models.task import Task
-from app.db.models.user import User
-from app.db.session import engine
+from app.core.config import get_settings
+from app.db.session import get_db
 
 
-@asynccontextmanager
-async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
-    yield
-
-
-app = FastAPI(title="Monedo API", version="1.0.0", lifespan=lifespan)
+settings = get_settings()
+app = FastAPI(title="Monedo API", version="2.0.0")
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],
-    allow_credentials=False,
+    allow_origins=list(settings.cors_origins),
+    allow_credentials=settings.cors_origins != ("*",),
     allow_methods=["*"],
     allow_headers=["*"],
 )
@@ -29,5 +23,13 @@ app.include_router(api_router)
 
 
 @app.get("/health", tags=["health"])
-def health():
+def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/ready", tags=["health"])
+def ready(
+    db: Annotated[Session, Depends(get_db)],
+) -> dict[str, str]:
+    db.execute(text("SELECT 1"))
+    return {"status": "ready"}

@@ -1,361 +1,288 @@
-import React, { useState } from "react";
+import { BottomTabScreenProps } from "@react-navigation/bottom-tabs";
+import { useState } from "react";
 import {
-  View,
-  Text,
-  StyleSheet,
-  TextInput,
+  ActivityIndicator,
+  Alert,
   Pressable,
   ScrollView,
-  StatusBar,
-  Platform,
+  StyleSheet,
+  Text,
+  TextInput,
+  View,
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
-import { Ionicons } from "@expo/vector-icons";
-import DateTimePicker from "@react-native-community/datetimepicker";
-import DropDownPicker from "react-native-dropdown-picker";
 
-export default function CreateScreen({ navigation }: any) {
+import { useAuth } from "../context/AuthContext";
+import { MainTabsParamList } from "../navigation";
+import { Task } from "../services/api";
+
+
+type Props = BottomTabScreenProps<MainTabsParamList, "Adicionar">;
+type Priority = Task["priority"];
+
+const PRIORITIES: Array<{ value: Priority; label: string; color: string }> = [
+  { value: "baixa", label: "Baixa", color: "#16A34A" },
+  { value: "media", label: "Media", color: "#CA8A04" },
+  { value: "alta", label: "Alta", color: "#EA580C" },
+  { value: "urgente", label: "Urgente", color: "#DC2626" },
+];
+
+
+export default function CreateScreen({ navigation }: Props) {
+  const { request } = useAuth();
   const [title, setTitle] = useState("");
-  const [date, setDate] = useState("");
+  const [date, setDate] = useState(todayIso());
   const [time, setTime] = useState("");
+  const [category, setCategory] = useState("");
+  const [priority, setPriority] = useState<Priority>("media");
   const [description, setDescription] = useState("");
+  const [saving, setSaving] = useState(false);
 
-  const [showDatePicker, setShowDatePicker] = useState(false);
-
-  const selectedDate = date
-    ? new Date(date.split("/").reverse().join("-"))
-    : new Date();
-
-  // CATEGORY
-  const [categoryOpen, setCategoryOpen] = useState(false);
-  const [category, setCategory] = useState(null);
-  const [categoryItems, setCategoryItems] = useState([
-    { label: "Matemática", value: "Matemática" },
-    { label: "Português", value: "Português" },
-    { label: "História", value: "História" },
-    { label: "Inglês", value: "Inglês" },
-  ]);
-
-  // PRIORITY
-  const [priorityOpen, setPriorityOpen] = useState(false);
-  const [priority, setPriority] = useState<string | null>(null);
-  const [priorityItems, setPriorityItems] = useState<Array<{
-    label: string;
-    value: string;
-    color: string;
-  }>>([
-    { label: "Baixa", value: "baixa", color: "#22C55E" },
-    { label: "Média", value: "media", color: "#EAB308" },
-    { label: "Alta", value: "alta", color: "#F97316" },
-    { label: "Urgente", value: "urgente", color: "#EF4444" },
-  ]);
-
-  function handleTimeChange(value: string) {
-    const digits = value.replace(/[^0-9]/g, "").slice(0, 4);
-    if (digits.length <= 2) {
-      setTime(digits);
+  async function save() {
+    if (!title.trim() || !isIsoDate(date)) {
+      Alert.alert(
+        "Campos invalidos",
+        "Informe o titulo e uma data no formato AAAA-MM-DD.",
+      );
+      return;
+    }
+    if (time && !/^([01]\d|2[0-3]):[0-5]\d$/.test(time)) {
+      Alert.alert("Hora invalida", "Use o formato HH:MM.");
       return;
     }
 
-    setTime(`${digits.slice(0, 2)}:${digits.slice(2)}`);
+    setSaving(true);
+    try {
+      await request<Task>("/tasks", {
+        method: "POST",
+        body: {
+          title: title.trim(),
+          due_date: date,
+          time: time || null,
+          category: category.trim() || null,
+          priority,
+          description: description.trim() || null,
+        },
+      });
+      clearForm();
+      navigation.navigate("Estudos", { refresh: Date.now() });
+    } catch (error) {
+      Alert.alert(
+        "Erro ao salvar",
+        error instanceof Error ? error.message : "Tente novamente.",
+      );
+    } finally {
+      setSaving(false);
+    }
+  }
+
+  function clearForm() {
+    setTitle("");
+    setDate(todayIso());
+    setTime("");
+    setCategory("");
+    setPriority("media");
+    setDescription("");
   }
 
   return (
-    <View style={{ flex: 1, backgroundColor: "#2563EB" }}>
-      <SafeAreaView style={{ backgroundColor: "#2563EB" }} edges={["top"]}>
-        <StatusBar barStyle="light-content" backgroundColor="#2563EB" />
+    <SafeAreaView style={styles.safeArea}>
+      <View style={styles.header}>
+        <Text style={styles.headerTitle}>Adicionar tarefa</Text>
+      </View>
+      <ScrollView contentContainerStyle={styles.content}>
+        <FieldLabel label="Titulo" />
+        <TextInput
+          onChangeText={setTitle}
+          placeholder="Ex: Prova de Matematica"
+          style={styles.input}
+          value={title}
+        />
 
-        {/* HEADER */}
-        <View style={styles.header}>
-          <Pressable onPress={() => navigation.goBack()}>
-            <Ionicons name="arrow-back" size={22} color="#fff" />
-          </Pressable>
-          <Text style={styles.headerTitle}>Adicionar Dados</Text>
+        <View style={styles.row}>
+          <View style={styles.half}>
+            <FieldLabel label="Data" />
+            <TextInput
+              autoCapitalize="none"
+              keyboardType="numbers-and-punctuation"
+              onChangeText={setDate}
+              placeholder="AAAA-MM-DD"
+              style={styles.input}
+              value={date}
+            />
+          </View>
+          <View style={styles.half}>
+            <FieldLabel label="Hora" />
+            <TextInput
+              keyboardType="numbers-and-punctuation"
+              maxLength={5}
+              onChangeText={setTime}
+              placeholder="HH:MM"
+              style={styles.input}
+              value={time}
+            />
+          </View>
         </View>
-      </SafeAreaView>
 
-      {/* CONTEÚDO */}
-      <View style={{ flex: 1, backgroundColor: "#F9FAFB" }}>
-        <ScrollView contentContainerStyle={styles.container}>
-          {/* TÍTULO */}
-          <Text style={styles.label}>Título</Text>
-          <TextInput
-            style={styles.input}
-            placeholder="Ex: Prova de Matemática"
-            value={title}
-            onChangeText={setTitle}
-          />
+        <FieldLabel label="Materia ou categoria" />
+        <TextInput
+          onChangeText={setCategory}
+          placeholder="Ex: Matematica"
+          style={styles.input}
+          value={category}
+        />
 
-          {/* DATA + HORA */}
-          <View style={styles.row}>
-            <View style={styles.half}>
-              <Text style={styles.label}>Data</Text>
+        <FieldLabel label="Prioridade" />
+        <View style={styles.priorityRow}>
+          {PRIORITIES.map((item) => {
+            const selected = priority === item.value;
+            return (
               <Pressable
-                style={styles.inputContainer}
-                onPress={() => setShowDatePicker(true)}
+                key={item.value}
+                onPress={() => setPriority(item.value)}
+                style={[
+                  styles.priorityButton,
+                  selected && { backgroundColor: item.color },
+                ]}
               >
-                <Ionicons name="calendar-outline" size={20} color="#666" />
                 <Text
-                  style={
-                    date
-                      ? [styles.inputWithIcon, styles.inputText]
-                      : [styles.inputWithIcon, styles.placeholderText]
-                  }
+                  style={[
+                    styles.priorityText,
+                    selected && styles.priorityTextSelected,
+                  ]}
                 >
-                  {date || "dd/mm/aaaa"}
+                  {item.label}
                 </Text>
               </Pressable>
-            </View>
+            );
+          })}
+        </View>
 
-            <View style={styles.half}>
-              <Text style={styles.label}>Hora</Text>
-              <TextInput
-                style={styles.input}
-                placeholder="HH:MM"
-                value={time}
-                onChangeText={handleTimeChange}
-                keyboardType="numeric"
-                maxLength={5}
-              />
-            </View>
-          </View>
+        <FieldLabel label="Descricao" />
+        <TextInput
+          multiline
+          onChangeText={setDescription}
+          placeholder="Detalhes da tarefa"
+          style={[styles.input, styles.description]}
+          textAlignVertical="top"
+          value={description}
+        />
 
-          {/* PICKERS */}
-          {showDatePicker && (
-            <DateTimePicker
-              value={selectedDate}
-              mode="date"
-              display={Platform.OS === "ios" ? "inline" : "calendar"}
-              onChange={(event, selectedDate) => {
-                setShowDatePicker(false);
-                if (event.type === "dismissed") return;
-                if (selectedDate) {
-                  setDate(selectedDate.toLocaleDateString("pt-BR"));
-                }
-              }}
-            />
+        <Pressable
+          disabled={saving}
+          onPress={() => void save()}
+          style={[styles.primaryButton, saving && styles.disabled]}
+        >
+          {saving ? (
+            <ActivityIndicator color="#FFFFFF" />
+          ) : (
+            <Text style={styles.primaryText}>Salvar tarefa</Text>
           )}
-
-          {/* CATEGORIA */}
-          <Text style={styles.label}>Categoria</Text>
-          <DropDownPicker
-            open={categoryOpen}
-            value={category}
-            items={categoryItems}
-            setOpen={setCategoryOpen}
-            setValue={setCategory}
-            setItems={setCategoryItems}
-            placeholder="Selecione uma categoria"
-            style={styles.dropdown}
-            zIndex={3000}
-            zIndexInverse={1000}
-            listMode="SCROLLVIEW"
-          />
-
-          {/* PRIORIDADE */}
-          <Text style={styles.label}>Prioridade</Text>
-          <DropDownPicker
-            open={priorityOpen}
-            value={priority}
-            items={priorityItems}
-            setOpen={setPriorityOpen}
-            setValue={setPriority}
-            setItems={setPriorityItems}
-            placeholder="Selecione a prioridade"
-            style={styles.dropdown}
-            zIndex={2000}
-            zIndexInverse={2000}
-            listMode="SCROLLVIEW"
-            renderListItem={(props) => {
-              const item = props.item as {
-                label: string;
-                value: string;
-                color: string;
-              };
-
-              return (
-                <Pressable
-                  onPress={() => {
-                    setPriority(item.value);
-                    setPriorityOpen(false);
-                  }}
-                  style={styles.dropdownItem}
-                >
-                  <View
-                    style={[styles.colorDot, { backgroundColor: item.color }]}
-                  />
-                  <Text>{item.label}</Text>
-                </Pressable>
-              );
-            }}
-          />
-
-          {/* DESCRIÇÃO */}
-          <Text style={styles.label}>Descrição</Text>
-          <TextInput
-            style={[styles.input, { height: 80 }]}
-            placeholder="Detalhes..."
-            multiline
-            value={description}
-            onChangeText={setDescription}
-          />
-
-          {/* SALVAR */}
-          <Pressable
-            style={styles.primaryButton}
-            onPress={() => {
-              navigation.navigate("Estudos", {
-                newItem: {
-                  id: Date.now().toString(),
-                  title,
-                  date: date || "Hoje",
-                  time: time || "--:--",
-                  category,
-                  priority,
-                  description,
-                },
-              });
-            }}
-          >
-            <Text style={styles.primaryText}>Salvar</Text>
-          </Pressable>
-
-          {/* CANCELAR */}
-          <Pressable
-            style={styles.secondaryButton}
-            onPress={() => navigation.goBack()}
-          >
-            <Text style={styles.secondaryText}>Cancelar</Text>
-          </Pressable>
-        </ScrollView>
-      </View>
-    </View>
+        </Pressable>
+      </ScrollView>
+    </SafeAreaView>
   );
 }
 
+
+function FieldLabel({ label }: { label: string }) {
+  return <Text style={styles.label}>{label}</Text>;
+}
+
+
+function todayIso(): string {
+  const now = new Date();
+  const offset = now.getTimezoneOffset() * 60_000;
+  return new Date(now.getTime() - offset).toISOString().slice(0, 10);
+}
+
+
+function isIsoDate(value: string): boolean {
+  return /^\d{4}-\d{2}-\d{2}$/.test(value) &&
+    !Number.isNaN(Date.parse(`${value}T12:00:00`));
+}
+
+
 const styles = StyleSheet.create({
+  safeArea: {
+    backgroundColor: "#F8FAFC",
+    flex: 1,
+  },
   header: {
     backgroundColor: "#2563EB",
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 15,
+    paddingHorizontal: 20,
+    paddingVertical: 17,
   },
-
   headerTitle: {
-    color: "#fff",
-    fontSize: 20,
-    fontWeight: "700",
-    fontFamily: "System",
-    marginLeft: 10,
+    color: "#FFFFFF",
+    fontSize: 23,
+    fontWeight: "800",
   },
-
-  container: {
-    padding: 15,
-    backgroundColor: "#F9FAFB",
-    flexGrow: 1,
+  content: {
+    padding: 18,
+    paddingBottom: 36,
   },
-
   label: {
+    color: "#334155",
     fontSize: 13,
-    fontWeight: "600",
-    fontFamily: "System",
-    marginBottom: 5,
-    marginTop: 10,
+    fontWeight: "700",
+    marginBottom: 7,
+    marginTop: 15,
   },
-
   input: {
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 10,
-    height: 40,
-    fontFamily: "System",
-    color: "#111827",
+    backgroundColor: "#FFFFFF",
+    borderColor: "#CBD5E1",
+    borderRadius: 10,
+    borderWidth: 1,
+    color: "#0F172A",
+    fontSize: 15,
+    minHeight: 48,
+    paddingHorizontal: 13,
   },
-
-  inputContainer: {
-    flexDirection: "row",
-    alignItems: "center",
-    backgroundColor: "#E5E7EB",
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    height: 48,
-  },
-
-  inputWithIcon: {
-    flex: 1,
-    marginHorizontal: 10,
-    fontFamily: "System",
-    color: "#111827",
-  },
-
-  inputText: {
-    fontFamily: "System",
-    color: "#111827",
-  },
-
-  placeholderText: {
-    fontFamily: "System",
-    color: "#9CA3AF",
-  },
-
-  dropdown: {
-    backgroundColor: "#E5E7EB",
-    borderColor: "#ccc",
-    borderRadius: 8,
-    height: 48,
-  },
-
-  dropdownItem: {
-    flexDirection: "row",
-    alignItems: "center",
-    padding: 12,
-  },
-
-  colorDot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    marginRight: 10,
-  },
-
   row: {
     flexDirection: "row",
-    gap: 10,
+    gap: 12,
   },
-
   half: {
     flex: 1,
   },
-
-  primaryButton: {
-    marginTop: 20,
-    backgroundColor: "#2563EB",
-    height: 45,
-    borderRadius: 8,
-    alignItems: "center",
-    justifyContent: "center",
+  priorityRow: {
+    flexDirection: "row",
+    flexWrap: "wrap",
+    gap: 8,
   },
-
-  primaryText: {
-    color: "#fff",
+  priorityButton: {
+    backgroundColor: "#E2E8F0",
+    borderRadius: 18,
+    paddingHorizontal: 14,
+    paddingVertical: 9,
+  },
+  priorityText: {
+    color: "#334155",
+    fontSize: 13,
     fontWeight: "700",
-    fontFamily: "System",
-    fontSize: 16,
   },
-
-  secondaryButton: {
-    marginTop: 10,
-    borderWidth: 1,
-    borderColor: "#ccc",
-    height: 45,
-    borderRadius: 8,
+  priorityTextSelected: {
+    color: "#FFFFFF",
+  },
+  description: {
+    minHeight: 100,
+    paddingTop: 13,
+  },
+  primaryButton: {
     alignItems: "center",
+    backgroundColor: "#2563EB",
+    borderRadius: 11,
+    height: 50,
     justifyContent: "center",
-    backgroundColor: "#fff",
+    marginTop: 24,
   },
-
-  secondaryText: {
-    color: "#111",
-    fontFamily: "System",
+  primaryText: {
+    color: "#FFFFFF",
+    fontSize: 16,
+    fontWeight: "800",
+  },
+  disabled: {
+    opacity: 0.65,
   },
 });

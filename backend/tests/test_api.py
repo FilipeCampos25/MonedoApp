@@ -1,226 +1,288 @@
-from datetime import date
-import importlib
+from datetime import date, datetime, timedelta, timezone
 
 import httpx
 import pytest
-from fastapi import FastAPI
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app.db.models.refresh_session import RefreshSession
 from app.db.models.study_session import StudySession
 from app.db.models.task import Task
 from app.db.models.user import User
 
 
-AUTH_PAYLOAD = {
-    "username": "maria",
-    "password": "senha-segura",
-    "token": "token-do-dispositivo",
-}
+PASSWORD = "senha-segura"
 
 
-async def register_user(client: httpx.AsyncClient) -> int:
-    register_response = await client.post("/register", json=AUTH_PAYLOAD)
-    assert register_response.status_code == 200
-    assert register_response.json() == {
-        "success": True,
-        "data": None,
-        "error": None,
-    }
-
-    login_response = await client.post("/login", json=AUTH_PAYLOAD)
-    assert login_response.status_code == 200
-    login_data = login_response.json()
-    assert login_data["success"] is True
-    return login_data["data"]["user_id"]
+async def register(
+    client: httpx.AsyncClient,
+    email: str = "maria@example.com",
+) -> dict:
+    response = await client.post(
+        "/auth/register",
+        json={"email": email, "password": PASSWORD},
+    )
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
-async def create_task(client: httpx.AsyncClient, user_id: int) -> int:
+def auth_headers(tokens: dict) -> dict[str, str]:
+    return {"Authorization": f"Bearer {tokens['access_token']}"}
+
+
+async def create_task(
+    client: httpx.AsyncClient,
+    tokens: dict,
+) -> dict:
     response = await client.post(
         "/tasks",
+        headers=auth_headers(tokens),
         json={
-            "user_id": user_id,
             "title": "Prova de Matematica",
             "priority": "alta",
-            "due_date": "2026-06-15",
+            "due_date": date.today().isoformat(),
             "time": "14:00",
             "category": "Matematica",
             "description": "Revisar capitulos 1 a 4",
         },
     )
-    assert response.status_code == 200
-    assert response.json() == {"success": True}
-
-    tasks_response = await client.get("/tasks", params={"user_id": user_id})
-    return tasks_response.json()[0]["id"]
+    assert response.status_code == 201, response.text
+    return response.json()
 
 
 async def create_study_session(
     client: httpx.AsyncClient,
-    user_id: int,
+    tokens: dict,
 ) -> dict:
     response = await client.post(
         "/study/sessions",
+        headers=auth_headers(tokens),
         json={
-            "user_id": user_id,
             "duration": 3600,
             "subject": "Matematica",
             "session_type": "Revisao",
             "date": date.today().isoformat(),
         },
     )
-    assert response.status_code == 200
+    assert response.status_code == 201, response.text
     return response.json()
 
 
 @pytest.mark.asyncio
-async def test_health_returns_success(client: httpx.AsyncClient):
-    response = await client.get("/health")
+async def test_health_and_ready(client: httpx.AsyncClient):
+    health = await client.get("/health")
+    ready = await client.get("/ready")
 
-    assert response.status_code == 200
-    assert response.json() == {"status": "ok"}
+    assert health.status_code == 200
+    assert health.json() == {"status": "ok"}
+    assert ready.status_code == 200
+    assert ready.json() == {"status": "ready"}
 
 
 @pytest.mark.asyncio
-async def test_register_creates_user(
+async def test_register_normalizes_email_and_hashes_password(
     client: httpx.AsyncClient,
     db_session: Session,
 ):
-    response = await client.post("/register", json=AUTH_PAYLOAD)
+    tokens = await register(client, "Maria@Example.com")
 
-    assert response.status_code == 200
-    assert response.json()["success"] is True
+    assert tokens["user"]["email"] == "maria@example.com"
+    assert tokens["token_type"] == "bearer"
+    assert tokens["expires_in"] == 900
+    assert tokens["access_token"]
+    assert tokens["refresh_token"]
+
     user = db_session.scalar(
-        select(User).where(User.username == AUTH_PAYLOAD["username"])
+        select(User).where(User.email == "maria@example.com")
     )
     assert user is not None
-    assert user.password_hash != AUTH_PAYLOAD["password"]
+    assert user.username == "maria@example.com"
+    assert user.password_hash != PASSWORD
 
 
 @pytest.mark.asyncio
-async def test_login_authenticates_created_user(client: httpx.AsyncClient):
-    user_id = await register_user(client)
-
-    response = await client.post("/login", json=AUTH_PAYLOAD)
-
-    assert response.status_code == 200
-    assert response.json() == {
-        "success": True,
-        "data": {"user_id": user_id},
-        "error": None,
-    }
+async def test_duplicate_registration_returns_conflict(
+    client: httpx.AsyncClient,
+):
+    await register(client)
+    response = await client.post(
+        "/auth/register",
+        json={"email": "MARIA@example.com", "password": PASSWORD},
+    )
+    assert response.status_code == 409
 
 
 @pytest.mark.asyncio
-async def test_create_task_persists_in_database(
+async def test_login_me_and_invalid_password(client: httpx.AsyncClient):
+    registered = await register(client)
+
+    login = await client.post(
+        "/auth/login",
+        json={"email": "maria@example.com", "password": PASSWORD},
+    )
+    invalid = await client.post(
+        "/auth/login",
+        json={"email": "maria@example.com", "password": "senha-errada"},
+    )
+    me = await client.get("/auth/me", headers=auth_headers(registered))
+
+    assert login.status_code == 200
+    assert login.json()["user"] == registered["user"]
+    assert invalid.status_code == 401
+    assert me.status_code == 200
+    assert me.json() == registered["user"]
+
+
+@pytest.mark.asyncio
+async def test_refresh_rotates_token_and_rejects_reuse(
+    client: httpx.AsyncClient,
+):
+    registered = await register(client)
+    refreshed = await client.post(
+        "/auth/refresh",
+        json={"refresh_token": registered["refresh_token"]},
+    )
+    reused = await client.post(
+        "/auth/refresh",
+        json={"refresh_token": registered["refresh_token"]},
+    )
+
+    assert refreshed.status_code == 200
+    assert (
+        refreshed.json()["refresh_token"]
+        != registered["refresh_token"]
+    )
+    assert reused.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_logout_revokes_refresh_token(client: httpx.AsyncClient):
+    registered = await register(client)
+    logout = await client.post(
+        "/auth/logout",
+        json={"refresh_token": registered["refresh_token"]},
+    )
+    refresh = await client.post(
+        "/auth/refresh",
+        json={"refresh_token": registered["refresh_token"]},
+    )
+
+    assert logout.status_code == 204
+    assert refresh.status_code == 401
+
+
+@pytest.mark.asyncio
+async def test_expired_refresh_token_is_rejected(
     client: httpx.AsyncClient,
     db_session: Session,
 ):
-    user_id = await register_user(client)
+    registered = await register(client)
+    refresh_session = db_session.scalar(select(RefreshSession))
+    assert refresh_session is not None
+    refresh_session.expires_at = datetime.now(timezone.utc) - timedelta(days=1)
+    db_session.commit()
 
-    await create_task(client, user_id)
-
-    task = db_session.scalar(select(Task).where(Task.user_id == user_id))
-    assert task is not None
-    assert task.title == "Prova de Matematica"
-    assert task.completed is False
-
-
-@pytest.mark.asyncio
-async def test_list_tasks_returns_created_task(client: httpx.AsyncClient):
-    user_id = await register_user(client)
-    await create_task(client, user_id)
-
-    response = await client.get("/tasks", params={"user_id": user_id})
-
-    assert response.status_code == 200
-    tasks = response.json()
-    assert len(tasks) == 1
-    assert tasks[0]["title"] == "Prova de Matematica"
-    assert tasks[0]["completed"] is False
+    response = await client.post(
+        "/auth/refresh",
+        json={"refresh_token": registered["refresh_token"]},
+    )
+    assert response.status_code == 401
 
 
 @pytest.mark.asyncio
-async def test_complete_task_updates_database(client: httpx.AsyncClient):
-    user_id = await register_user(client)
-    task_id = await create_task(client, user_id)
+async def test_protected_routes_require_bearer_token(
+    client: httpx.AsyncClient,
+):
+    for method, path in [
+        ("GET", "/auth/me"),
+        ("GET", "/tasks"),
+        ("GET", "/study/sessions"),
+        ("GET", "/dashboard"),
+    ]:
+        response = await client.request(method, path)
+        assert response.status_code == 401
 
-    response = await client.patch(f"/tasks/{task_id}/complete")
-    tasks_response = await client.get(
+
+@pytest.mark.asyncio
+async def test_tasks_are_persisted_completed_and_isolated(
+    client: httpx.AsyncClient,
+    db_session: Session,
+):
+    maria = await register(client)
+    ana = await register(client, "ana@example.com")
+    task = await create_task(client, maria)
+
+    maria_tasks = await client.get(
         "/tasks",
-        params={"user_id": user_id},
+        headers=auth_headers(maria),
+    )
+    ana_tasks = await client.get(
+        "/tasks",
+        headers=auth_headers(ana),
+    )
+    forbidden_complete = await client.patch(
+        f"/tasks/{task['id']}/complete",
+        headers=auth_headers(ana),
+    )
+    completed = await client.patch(
+        f"/tasks/{task['id']}/complete",
+        headers=auth_headers(maria),
     )
 
-    assert response.status_code == 200
-    assert response.json() == {"success": True}
-    assert tasks_response.json()[0]["completed"] is True
+    assert maria_tasks.json()[0]["category"] == "Matematica"
+    assert ana_tasks.json() == []
+    assert forbidden_complete.status_code == 404
+    assert completed.status_code == 200
+    assert completed.json()["completed"] is True
+    assert db_session.scalar(select(Task)).completed is True
 
 
 @pytest.mark.asyncio
-async def test_create_study_session_persists_in_database(
+async def test_task_validation_returns_422(client: httpx.AsyncClient):
+    tokens = await register(client)
+    response = await client.post(
+        "/tasks",
+        headers=auth_headers(tokens),
+        json={
+            "title": "Tarefa",
+            "priority": "invalida",
+            "due_date": date.today().isoformat(),
+            "time": "25:00",
+        },
+    )
+    assert response.status_code == 422
+
+
+@pytest.mark.asyncio
+async def test_sessions_and_dashboard_use_authenticated_data(
     client: httpx.AsyncClient,
     db_session: Session,
 ):
-    user_id = await register_user(client)
-
-    response_data = await create_study_session(client, user_id)
-
-    assert response_data["success"] is True
-    study_session = db_session.scalar(
-        select(StudySession).where(StudySession.user_id == user_id)
+    tokens = await register(client)
+    task = await create_task(client, tokens)
+    await client.patch(
+        f"/tasks/{task['id']}/complete",
+        headers=auth_headers(tokens),
     )
-    assert study_session is not None
-    assert study_session.duration_seconds == 3600
+    created_session = await create_study_session(client, tokens)
 
-
-@pytest.mark.asyncio
-async def test_list_study_sessions_returns_created_session(
-    client: httpx.AsyncClient,
-):
-    user_id = await register_user(client)
-    await create_study_session(client, user_id)
-
-    response = await client.get(
+    sessions = await client.get(
         "/study/sessions",
-        params={"user_id": user_id},
+        headers=auth_headers(tokens),
     )
-
-    assert response.status_code == 200
-    sessions = response.json()
-    assert len(sessions) == 1
-    assert sessions[0]["subject"] == "Matematica"
-    assert sessions[0]["duration"] == 3600
-
-
-@pytest.mark.asyncio
-async def test_dashboard_uses_persisted_tasks_and_sessions(
-    client: httpx.AsyncClient,
-):
-    user_id = await register_user(client)
-    task_id = await create_task(client, user_id)
-    await client.patch(f"/tasks/{task_id}/complete")
-    await create_study_session(client, user_id)
-
-    response = await client.get(
+    dashboard = await client.get(
         "/dashboard",
-        params={"user_id": user_id},
+        headers=auth_headers(tokens),
     )
 
-    assert response.status_code == 200
-    dashboard = response.json()
-    assert dashboard["today"] == {
-        "study_seconds": 3600,
-        "sessions": 1,
-    }
-    assert dashboard["tasks"] == {
-        "total": 1,
-        "completed": 1,
-        "pending": 0,
-    }
-    assert sum(dashboard["week"]["study_seconds_by_day"]) == 3600
+    assert sessions.status_code == 200
+    assert sessions.json() == [created_session]
+    assert db_session.scalar(select(StudySession)) is not None
 
-
-def test_fastapi_app_imports_without_error():
-    main_module = importlib.import_module("main")
-
-    assert isinstance(main_module.app, FastAPI)
+    payload = dashboard.json()
+    assert payload["today"] == {"study_seconds": 3600, "sessions": 1}
+    assert payload["tasks"]["completed"] == 1
+    assert sum(payload["week"]["study_seconds_by_day"]) == 3600
+    assert payload["subjects"] == [
+        {"subject": "Matematica", "study_seconds": 3600}
+    ]

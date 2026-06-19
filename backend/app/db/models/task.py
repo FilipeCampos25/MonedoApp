@@ -25,7 +25,7 @@ class Task(Base):
 
     user_id: Mapped[int] = mapped_column(
         BigInteger().with_variant(Integer, "sqlite"),
-        ForeignKey("users.id"),
+        ForeignKey("users.id", ondelete="CASCADE"),
         nullable=False,
     )
 

@@ -21,10 +21,10 @@ class User(Base):
         nullable=False,
     )
 
-    email: Mapped[str | None] = mapped_column(
+    email: Mapped[str] = mapped_column(
         String(255),
         unique=True,
-        nullable=True,
+        nullable=False,
     )
 
     password_algorithm: Mapped[str] = mapped_column(
@@ -45,11 +45,6 @@ class User(Base):
 
     password_hash: Mapped[str] = mapped_column(
         String(128),
-        nullable=False,
-    )
-
-    auth_token: Mapped[str] = mapped_column(
-        String(255),
         nullable=False,
     )
 

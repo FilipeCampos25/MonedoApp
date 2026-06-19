@@ -16,6 +16,7 @@ if str(BACKEND_DIR) not in sys.path:
     sys.path.insert(0, str(BACKEND_DIR))
 
 from app.db.base import Base
+from app.db.models.refresh_session import RefreshSession
 from app.db.models.study_session import StudySession
 from app.db.models.task import Task
 from app.db.models.user import User
