@@ -1,16 +1,22 @@
 import {
   completeTask,
+  createAccountOption,
   createStudySession,
   createTask,
   getCurrentUser,
+  getAccount,
   getDashboard,
   getFormOptions,
   getPreferences,
   getTasks,
   loginRequest,
   logoutRequest,
+  deleteAccount,
+  deleteAccountOption,
   registerRequest,
   updatePreferences,
+  updateAccountOption,
+  updateProfile,
 } from "..";
 import { apiRequest } from "../client";
 
@@ -22,7 +28,7 @@ it("maps all service calls to the canonical API contract", async () => {
   requestMock.mockResolvedValue({});
 
   await loginRequest("maria", "senha-segura");
-  await registerRequest("maria", "senha-segura");
+  await registerRequest("maria", "maria@example.com", "senha-segura");
   await getCurrentUser("token");
   await logoutRequest("token");
   await getTasks("token");
@@ -36,7 +42,7 @@ it("maps all service calls to the canonical API contract", async () => {
   });
   await completeTask("token", 7);
   await getDashboard("token");
-  await getFormOptions();
+  await getFormOptions("token");
   await getPreferences("token");
   await updatePreferences("token", 7200);
   await createStudySession("token", {
@@ -44,9 +50,16 @@ it("maps all service calls to the canonical API contract", async () => {
     subject: "Matemática",
     session_type: "Revisão",
   });
+  await getAccount("token");
+  await updateProfile("token", "maria", "maria@example.com");
+  await createAccountOption("token", "categories", "Ciências");
+  await updateAccountOption("token", "categories", 3, "Exatas");
+  await deleteAccountOption("token", "categories", 3);
+  await deleteAccount("token", "senha-segura");
 
   expect(requestMock).toHaveBeenCalledWith("/auth/login", expect.objectContaining({ method: "POST" }));
   expect(requestMock).toHaveBeenCalledWith("/tasks/7/complete", expect.objectContaining({ method: "PATCH" }));
   expect(requestMock).toHaveBeenCalledWith("/preferences", expect.objectContaining({ body: { daily_goal_seconds: 7200 } }));
-  expect(requestMock).toHaveBeenCalledTimes(12);
+  expect(requestMock).toHaveBeenCalledWith("/account", expect.objectContaining({ method: "DELETE" }));
+  expect(requestMock).toHaveBeenCalledTimes(18);
 });

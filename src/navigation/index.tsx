@@ -7,6 +7,7 @@ import { ActivityIndicator, StyleSheet, View } from "react-native";
 
 import { useAuth } from "../context/AuthContext";
 import CreateScreen from "../screens/CreateScreen";
+import AccountScreen from "../screens/AccountScreen";
 import FocusScreen from "../screens/FocusScreen";
 import HomeScreen from "../screens/HomeScreen";
 import LoginScreen from "../screens/LoginScreen";
@@ -55,7 +56,10 @@ export default function Routes() {
     <NavigationContainer>
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         {token ? (
-          <Stack.Screen name="Main" component={TabRoutes} />
+          <>
+            <Stack.Screen name="Main" component={TabRoutes} />
+            <Stack.Screen name="Account" component={AccountScreen} />
+          </>
         ) : (
           <Stack.Screen name="Login" component={LoginScreen} />
         )}

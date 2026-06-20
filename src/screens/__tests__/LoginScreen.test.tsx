@@ -19,14 +19,14 @@ it("validates credentials before calling the API", async () => {
   const screen = await render(<LoginScreen />);
   await fireEvent.press(screen.getByText("Entrar"));
 
-  expect(screen.getByText(/Use um usuário/)).toBeTruthy();
+  expect(screen.getByText(/Informe seu usuário ou e-mail/)).toBeTruthy();
   expect(signIn).not.toHaveBeenCalled();
 });
 
 it("logs in and displays server errors", async () => {
   signIn.mockRejectedValue(new Error("Credenciais inválidas."));
   const screen = await render(<LoginScreen />);
-  await fireEvent.changeText(screen.getByPlaceholderText("seu_usuario"), "maria");
+  await fireEvent.changeText(screen.getByPlaceholderText("usuário ou email@exemplo.com"), "maria");
   await fireEvent.changeText(screen.getByPlaceholderText("Mínimo de 8 caracteres"), "senha-segura");
   await fireEvent.press(screen.getByText("Entrar"));
 
@@ -39,8 +39,9 @@ it("switches to registration mode", async () => {
   const screen = await render(<LoginScreen />);
   await fireEvent.press(screen.getByText("Ainda não tem conta? Cadastre-se"));
   await fireEvent.changeText(screen.getByPlaceholderText("seu_usuario"), "joana");
+  await fireEvent.changeText(screen.getByPlaceholderText("email@exemplo.com"), "joana@example.com");
   await fireEvent.changeText(screen.getByPlaceholderText("Mínimo de 8 caracteres"), "senha-segura");
   await fireEvent.press(screen.getByText("Cadastrar"));
 
-  await waitFor(() => expect(register).toHaveBeenCalledWith("joana", "senha-segura"));
+  await waitFor(() => expect(register).toHaveBeenCalledWith("joana", "joana@example.com", "senha-segura"));
 });

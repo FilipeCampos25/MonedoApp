@@ -1,5 +1,6 @@
 from typing import Any
 
+from app.api.modules.account.repository import option_exists
 from app.api.modules.tasks.repository import (
     atualizar_status_tarefa,
     criar_tarefa_db,
@@ -16,6 +17,9 @@ def criar_tarefa(user_id: int, data: dict[str, Any], db: Session) -> dict[str, A
     task_data["user_id"] = user_id
     if not validar_tarefa(task_data):
         raise ValueError("Dados da tarefa invalidos.")
+    category = task_data.get("category")
+    if category and not option_exists(db, user_id, "categories", str(category)):
+        raise ValueError("Categoria não cadastrada para este usuário.")
     return criar_tarefa_db(db, task_data)
 
 

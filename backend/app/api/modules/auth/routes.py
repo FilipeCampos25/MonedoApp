@@ -1,6 +1,11 @@
 from typing import Annotated, Any
 
-from app.api.modules.auth.schemas import AuthRequest, AuthResponse, CurrentUserResponse
+from app.api.modules.auth.schemas import (
+    AuthResponse,
+    CurrentUserResponse,
+    LoginRequest,
+    RegisterRequest,
+)
 from app.api.modules.auth.service import autenticar_usuario, encerrar_sessao, registrar_usuario
 from app.core.dependencies import get_current_user
 from app.db.session import get_db
@@ -11,9 +16,14 @@ router = APIRouter(prefix="/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=AuthResponse, status_code=status.HTTP_201_CREATED)
-def register(request: AuthRequest, db: Annotated[Session, Depends(get_db)]):
+def register(request: RegisterRequest, db: Annotated[Session, Depends(get_db)]):
     try:
-        return registrar_usuario(request.username, request.password, db)
+        return registrar_usuario(
+            request.username,
+            str(request.email),
+            request.password,
+            db,
+        )
     except FileExistsError as exc:
         raise HTTPException(status_code=409, detail=str(exc)) from exc
     except ValueError as exc:
@@ -21,16 +31,20 @@ def register(request: AuthRequest, db: Annotated[Session, Depends(get_db)]):
 
 
 @router.post("/login", response_model=AuthResponse)
-def login(request: AuthRequest, db: Annotated[Session, Depends(get_db)]):
+def login(request: LoginRequest, db: Annotated[Session, Depends(get_db)]):
     try:
-        return autenticar_usuario(request.username, request.password, db)
+        return autenticar_usuario(request.identifier, request.password, db)
     except PermissionError as exc:
         raise HTTPException(status_code=401, detail=str(exc)) from exc
 
 
 @router.get("/me", response_model=CurrentUserResponse)
 def me(user: Annotated[dict[str, Any], Depends(get_current_user)]):
-    return {"user_id": user["id"], "username": user["username"]}
+    return {
+        "user_id": user["id"],
+        "username": user["username"],
+        "email": user["email"],
+    }
 
 
 @router.post("/logout", status_code=status.HTTP_204_NO_CONTENT)

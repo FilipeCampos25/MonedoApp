@@ -1,15 +1,12 @@
 from contextlib import asynccontextmanager
 
 from app.api.router import router as api_router
-from app.db.base import Base
-from app.db.session import engine
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 
 
 @asynccontextmanager
 async def lifespan(_: FastAPI):
-    Base.metadata.create_all(bind=engine)
     yield
 
 

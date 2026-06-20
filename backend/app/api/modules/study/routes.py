@@ -4,7 +4,7 @@ from app.api.modules.study.schemas import StudySessionCreate, StudySessionRespon
 from app.api.modules.study.service import listar_sessoes, registrar_sessao
 from app.core.dependencies import get_current_user
 from app.db.session import get_db
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 
 router = APIRouter(prefix="/study/sessions", tags=["study"])
@@ -20,7 +20,14 @@ def post_study_session(
     user: Annotated[dict[str, Any], Depends(get_current_user)],
     db: Annotated[Session, Depends(get_db)],
 ):
-    return registrar_sessao(user["id"], request.model_dump(mode="json"), db)
+    try:
+        return registrar_sessao(
+            user["id"],
+            request.model_dump(mode="json"),
+            db,
+        )
+    except ValueError as exc:
+        raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
 @router.get("", response_model=list[StudySessionResponse])

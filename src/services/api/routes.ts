@@ -10,4 +10,5 @@ export const API_ROUTES = {
   dashboard: "/dashboard",
   preferences: "/preferences",
   metadata: "/metadata/form-options",
+  account: "/account",
 } as const;

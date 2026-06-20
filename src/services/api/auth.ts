@@ -2,17 +2,17 @@ import type { AuthSession, CurrentUser } from "../../types/api";
 import { apiRequest } from "./client";
 import { API_ROUTES } from "./routes";
 
-export function loginRequest(username: string, password: string) {
+export function loginRequest(identifier: string, password: string) {
   return apiRequest<AuthSession>(API_ROUTES.auth.login, {
     method: "POST",
-    body: { username, password },
+    body: { identifier, password },
   });
 }
 
-export function registerRequest(username: string, password: string) {
+export function registerRequest(username: string, email: string, password: string) {
   return apiRequest<AuthSession>(API_ROUTES.auth.register, {
     method: "POST",
-    body: { username, password },
+    body: { username, email, password },
   });
 }
 

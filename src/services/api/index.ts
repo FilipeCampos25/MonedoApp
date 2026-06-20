@@ -5,3 +5,4 @@ export * from "./metadata";
 export * from "./preferences";
 export * from "./study";
 export * from "./tasks";
+export * from "./account";

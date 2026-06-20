@@ -1,12 +1,22 @@
 export type AuthSession = {
   user_id: number;
   username: string;
+  email: string | null;
   token: string;
 };
 
 export type CurrentUser = {
   user_id: number;
   username: string;
+  email: string | null;
+};
+
+export type AccountOption = { id: number; name: string };
+
+export type Account = CurrentUser & {
+  daily_goal_seconds: number;
+  categories: AccountOption[];
+  subjects: AccountOption[];
 };
 
 export type Task = {

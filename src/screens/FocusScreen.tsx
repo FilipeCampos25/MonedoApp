@@ -50,7 +50,7 @@ export default function FocusScreen() {
     setError("");
     try {
       const [formOptions, dashboardData] = await Promise.all([
-        getFormOptions(),
+        getFormOptions(token),
         getDashboard(token),
       ]);
       setOptions(formOptions);

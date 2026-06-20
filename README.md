@@ -55,6 +55,7 @@ python -m venv .venv
 python -m pip install -r backend/requirements.txt -r backend/requirements-dev.txt
 cp backend/.env.example backend/.env
 cd backend
+python -m alembic -c alembic.ini upgrade head
 python -m uvicorn main:app --reload
 ```
 

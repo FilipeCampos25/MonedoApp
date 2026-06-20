@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useState } from "react";
+import React, { useCallback, useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Alert,
@@ -37,10 +37,11 @@ export default function CreateScreen({ navigation }: { navigation: any }) {
   const [optionsError, setOptionsError] = useState("");
   const [saving, setSaving] = useState(false);
 
-  async function loadOptions() {
+  const loadOptions = useCallback(async () => {
+    if (!token) return;
     setOptionsError("");
     try {
-      const options = await getFormOptions();
+      const options = await getFormOptions(token);
       setCategoryItems(options.categories.map((value) => ({ label: value, value })));
       setPriorityItems(options.priorities.map((value) => ({
         label: value.charAt(0).toUpperCase() + value.slice(1),
@@ -53,11 +54,11 @@ export default function CreateScreen({ navigation }: { navigation: any }) {
           : "Não foi possível carregar as opções.",
       );
     }
-  }
+  }, [token]);
 
   useEffect(() => {
     void loadOptions();
-  }, []);
+  }, [loadOptions]);
 
   function handleTimeChange(value: string) {
     const digits = value.replace(/[^0-9]/g, "").slice(0, 4);

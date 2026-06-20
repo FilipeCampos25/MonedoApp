@@ -1,3 +1,4 @@
+from app.api.modules.account.routes import router as account_router
 from app.api.modules.auth.routes import router as auth_router
 from app.api.modules.dashboard.routes import router as dashboard_router
 from app.api.modules.metadata.routes import router as metadata_router
@@ -13,3 +14,4 @@ router.include_router(study_router)
 router.include_router(dashboard_router)
 router.include_router(preferences_router)
 router.include_router(metadata_router)
+router.include_router(account_router)

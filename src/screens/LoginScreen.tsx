@@ -16,14 +16,24 @@ export default function LoginScreen() {
   const { register, signIn } = useAuth();
   const [mode, setMode] = useState<"login" | "register">("login");
   const [username, setUsername] = useState("");
+  const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [submitting, setSubmitting] = useState(false);
 
   async function handleSubmit() {
     const normalizedUsername = username.trim();
+    const normalizedEmail = email.trim().toLowerCase();
     if (normalizedUsername.length < 3 || password.length < 8) {
-      setError("Use um usuário com 3 caracteres e uma senha com pelo menos 8.");
+      setError(
+        mode === "login"
+          ? "Informe seu usuário ou e-mail e uma senha com pelo menos 8 caracteres."
+          : "Use um usuário com 3 caracteres e uma senha com pelo menos 8.",
+      );
+      return;
+    }
+    if (mode === "register" && !/^\S+@\S+\.\S+$/.test(normalizedEmail)) {
+      setError("Informe um e-mail válido.");
       return;
     }
 
@@ -31,7 +41,7 @@ export default function LoginScreen() {
     setError("");
     try {
       if (mode === "login") await signIn(normalizedUsername, password);
-      else await register(normalizedUsername, password);
+      else await register(normalizedUsername, normalizedEmail, password);
     } catch (requestError) {
       setError(
         requestError instanceof Error
@@ -54,16 +64,35 @@ export default function LoginScreen() {
           {mode === "login" ? "Entre para continuar" : "Crie sua conta"}
         </Text>
 
-        <Text style={styles.label}>Usuário</Text>
+        <Text style={styles.label}>
+          {mode === "login" ? "Usuário ou e-mail" : "Usuário"}
+        </Text>
         <TextInput
           autoCapitalize="none"
           autoCorrect={false}
           editable={!submitting}
           onChangeText={setUsername}
-          placeholder="seu_usuario"
+          placeholder={mode === "login" ? "usuário ou email@exemplo.com" : "seu_usuario"}
           style={styles.input}
           value={username}
         />
+
+        {mode === "register" ? (
+          <>
+            <Text style={styles.label}>E-mail</Text>
+            <TextInput
+              autoCapitalize="none"
+              autoComplete="email"
+              autoCorrect={false}
+              editable={!submitting}
+              keyboardType="email-address"
+              onChangeText={setEmail}
+              placeholder="email@exemplo.com"
+              style={styles.input}
+              value={email}
+            />
+          </>
+        ) : null}
 
         <Text style={styles.label}>Senha</Text>
         <TextInput

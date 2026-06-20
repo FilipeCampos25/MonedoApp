@@ -30,7 +30,7 @@ function Probe() {
     <>
       <Text>{auth.loading ? "loading" : auth.user?.username || "anonymous"}</Text>
       <Pressable accessibilityLabel="login" onPress={() => void auth.signIn("maria", "senha-segura")} />
-      <Pressable accessibilityLabel="register" onPress={() => void auth.register("joana", "senha-segura")} />
+      <Pressable accessibilityLabel="register" onPress={() => void auth.register("joana", "joana@example.com", "senha-segura")} />
       <Pressable accessibilityLabel="logout" onPress={() => void auth.signOut()} />
     </>
   );
@@ -43,7 +43,7 @@ beforeEach(() => {
 
 it("restores a valid stored session", async () => {
   getStoredToken.mockResolvedValue("saved-token");
-  meMock.mockResolvedValue({ user_id: 1, username: "maria" });
+  meMock.mockResolvedValue({ user_id: 1, username: "maria", email: null });
   const screen = await render(<AuthProvider><Probe /></AuthProvider>);
 
   await waitFor(() => expect(screen.getByText("maria")).toBeTruthy());
@@ -60,8 +60,8 @@ it("removes an invalid stored session", async () => {
 });
 
 it("supports login, logout and registration", async () => {
-  loginMock.mockResolvedValue({ user_id: 1, username: "maria", token: "login-token" });
-  registerMock.mockResolvedValue({ user_id: 2, username: "joana", token: "register-token" });
+  loginMock.mockResolvedValue({ user_id: 1, username: "maria", email: null, token: "login-token" });
+  registerMock.mockResolvedValue({ user_id: 2, username: "joana", email: "joana@example.com", token: "register-token" });
   logoutMock.mockResolvedValue(undefined);
   const screen = await render(<AuthProvider><Probe /></AuthProvider>);
   await waitFor(() => expect(screen.getByText("anonymous")).toBeTruthy());

@@ -22,9 +22,11 @@ type AuthContextValue = {
   loading: boolean;
   token: string | null;
   user: CurrentUser | null;
-  signIn: (username: string, password: string) => Promise<void>;
-  register: (username: string, password: string) => Promise<void>;
+  signIn: (identifier: string, password: string) => Promise<void>;
+  register: (username: string, email: string, password: string) => Promise<void>;
   signOut: () => Promise<void>;
+  updateUser: (user: CurrentUser) => void;
+  clearSession: () => Promise<void>;
 };
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -38,10 +40,15 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
     token: string;
     user_id: number;
     username: string;
+    email: string | null;
   }) => {
     await SecureStore.setItemAsync(TOKEN_KEY, session.token);
     setToken(session.token);
-    setUser({ user_id: session.user_id, username: session.username });
+    setUser({
+      user_id: session.user_id,
+      username: session.username,
+      email: session.email,
+    });
   }, []);
 
   useEffect(() => {
@@ -66,11 +73,11 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
       loading,
       token,
       user,
-      signIn: async (username, password) => {
-        await applySession(await loginRequest(username, password));
+      signIn: async (identifier, password) => {
+        await applySession(await loginRequest(identifier, password));
       },
-      register: async (username, password) => {
-        await applySession(await registerRequest(username, password));
+      register: async (username, email, password) => {
+        await applySession(await registerRequest(username, email, password));
       },
       signOut: async () => {
         try {
@@ -80,6 +87,12 @@ export function AuthProvider({ children }: React.PropsWithChildren) {
           setToken(null);
           setUser(null);
         }
+      },
+      updateUser: setUser,
+      clearSession: async () => {
+        await SecureStore.deleteItemAsync(TOKEN_KEY);
+        setToken(null);
+        setUser(null);
       },
     }),
     [applySession, loading, token, user],

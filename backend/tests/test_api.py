@@ -12,10 +12,15 @@ PASSWORD = "senha-segura"
 async def register(
     client: httpx.AsyncClient,
     username: str = "maria",
+    email: str | None = None,
 ) -> dict:
     response = await client.post(
         "/auth/register",
-        json={"username": username, "password": PASSWORD},
+        json={
+            "username": username,
+            "email": email or f"{username.lower()}@example.com",
+            "password": PASSWORD,
+        },
     )
     assert response.status_code == 201
     return response.json()
@@ -26,9 +31,13 @@ def auth(token: str) -> dict[str, str]:
 
 
 @pytest.mark.asyncio
-async def test_public_health_and_metadata(client: httpx.AsyncClient):
+async def test_public_health_and_personalized_metadata(client: httpx.AsyncClient):
     health = await client.get("/health")
-    metadata = await client.get("/metadata/form-options")
+    session = await register(client)
+    metadata = await client.get(
+        "/metadata/form-options",
+        headers=auth(session["token"]),
+    )
 
     assert health.json() == {"status": "ok"}
     assert metadata.status_code == 200
@@ -45,6 +54,8 @@ async def test_public_health_and_metadata(client: httpx.AsyncClient):
         ("GET", "/study/sessions"),
         ("GET", "/dashboard"),
         ("GET", "/preferences"),
+        ("GET", "/metadata/form-options"),
+        ("GET", "/account"),
     ],
 )
 async def test_protected_routes_require_bearer(
@@ -65,13 +76,18 @@ async def test_register_hashes_password_and_token(
     user = db_session.scalar(select(User).where(User.username == "maria"))
 
     assert session["username"] == "maria"
+    assert session["email"] == "maria@example.com"
     assert session["token"]
     assert user is not None
     assert user.password_hash != PASSWORD
     assert user.auth_token != session["token"]
     assert len(user.auth_token) == 64
     me = await client.get("/auth/me", headers=auth(session["token"]))
-    assert me.json() == {"user_id": user.id, "username": "maria"}
+    assert me.json() == {
+        "user_id": user.id,
+        "username": "maria",
+        "email": "maria@example.com",
+    }
 
 
 @pytest.mark.asyncio
@@ -79,11 +95,15 @@ async def test_register_rejects_duplicate_and_invalid_payload(client: httpx.Asyn
     await register(client)
     duplicate = await client.post(
         "/auth/register",
-        json={"username": "maria", "password": PASSWORD},
+        json={
+            "username": "outra",
+            "email": "MARIA@example.com",
+            "password": PASSWORD,
+        },
     )
     invalid = await client.post(
         "/auth/register",
-        json={"username": "ab", "password": "curta"},
+        json={"username": "ab", "email": "invalido", "password": "curta"},
     )
 
     assert duplicate.status_code == 409
@@ -95,11 +115,11 @@ async def test_login_rotates_token_and_rejects_wrong_password(client: httpx.Asyn
     original = await register(client)
     wrong = await client.post(
         "/auth/login",
-        json={"username": "maria", "password": "senha-errada"},
+        json={"identifier": "maria", "password": "senha-errada"},
     )
     login = await client.post(
         "/auth/login",
-        json={"username": "maria", "password": PASSWORD},
+        json={"identifier": "MARIA@example.com", "password": PASSWORD},
     )
 
     assert wrong.status_code == 401
@@ -217,3 +237,154 @@ async def test_empty_dashboard_has_real_zero_state(client: httpx.AsyncClient):
     assert dashboard["week"]["study_seconds_by_day"] == [0] * 7
     assert dashboard["subjects"] == []
     assert dashboard["streak_days"] == 0
+
+
+@pytest.mark.asyncio
+async def test_account_profile_defaults_and_unique_updates(client: httpx.AsyncClient):
+    first = await register(client, "maria", "MARIA@example.com")
+    second = await register(client, "joana", "joana@example.com")
+    headers = auth(first["token"])
+
+    account = (await client.get("/account", headers=headers)).json()
+    assert account["email"] == "maria@example.com"
+    assert account["daily_goal_seconds"] == 14400
+    assert [item["name"] for item in account["categories"]] == [
+        "Matemática",
+        "Português",
+        "História",
+        "Inglês",
+    ]
+    assert account["subjects"] != []
+
+    updated = await client.patch(
+        "/account/profile",
+        headers=headers,
+        json={"username": "maria_nova", "email": "NOVA@example.com"},
+    )
+    assert updated.json() == {
+        "user_id": first["user_id"],
+        "username": "maria_nova",
+        "email": "nova@example.com",
+    }
+    relogin = await client.post(
+        "/auth/login",
+        json={"identifier": "nova@example.com", "password": PASSWORD},
+    )
+    assert relogin.status_code == 200
+    headers = auth(relogin.json()["token"])
+    conflict = await client.patch(
+        "/account/profile",
+        headers=headers,
+        json={"username": "joana", "email": "outro@example.com"},
+    )
+    assert conflict.status_code == 409
+    assert second["username"] == "joana"
+
+
+@pytest.mark.asyncio
+async def test_option_crud_renames_history_and_preserves_deleted_values(
+    client: httpx.AsyncClient,
+):
+    session = await register(client)
+    headers = auth(session["token"])
+    account = (await client.get("/account", headers=headers)).json()
+    category = next(
+        item for item in account["categories"] if item["name"] == "Matemática"
+    )
+    subject = next(
+        item for item in account["subjects"] if item["name"] == "Matemática"
+    )
+
+    task = await client.post(
+        "/tasks",
+        headers=headers,
+        json={
+            "title": "Lista",
+            "priority": "alta",
+            "due_date": date.today().isoformat(),
+            "time": None,
+            "category": "Matemática",
+            "description": None,
+        },
+    )
+    study = await client.post(
+        "/study/sessions",
+        headers=headers,
+        json={
+            "duration": 1800,
+            "subject": "Matemática",
+            "session_type": None,
+            "date": date.today().isoformat(),
+        },
+    )
+    assert task.status_code == 201
+    assert study.status_code == 201
+
+    duplicate = await client.post(
+        "/account/categories",
+        headers=headers,
+        json={"name": "  matemática  "},
+    )
+    assert duplicate.status_code == 409
+    assert (
+        await client.patch(
+            f"/account/categories/{category['id']}",
+            headers=headers,
+            json={"name": "Exatas"},
+        )
+    ).status_code == 200
+    assert (
+        await client.patch(
+            f"/account/subjects/{subject['id']}",
+            headers=headers,
+            json={"name": "Cálculo"},
+        )
+    ).status_code == 200
+
+    assert (await client.get("/tasks", headers=headers)).json()[0][
+        "category"
+    ] == "Exatas"
+    assert (await client.get("/study/sessions", headers=headers)).json()[0][
+        "subject"
+    ] == "Cálculo"
+
+    await client.delete(f"/account/categories/{category['id']}", headers=headers)
+    await client.delete(f"/account/subjects/{subject['id']}", headers=headers)
+    assert (await client.get("/tasks", headers=headers)).json()[0][
+        "category"
+    ] == "Exatas"
+    assert (await client.get("/study/sessions", headers=headers)).json()[0][
+        "subject"
+    ] == "Cálculo"
+    invalid_new_session = await client.post(
+        "/study/sessions",
+        headers=headers,
+        json={"duration": 30, "subject": "Cálculo", "session_type": None},
+    )
+    assert invalid_new_session.status_code == 400
+
+
+@pytest.mark.asyncio
+async def test_delete_account_requires_password_and_removes_data(
+    client: httpx.AsyncClient,
+    db_session: Session,
+):
+    session = await register(client)
+    headers = auth(session["token"])
+    wrong = await client.request(
+        "DELETE",
+        "/account",
+        headers=headers,
+        json={"password": "senha-errada"},
+    )
+    assert wrong.status_code == 403
+    deleted = await client.request(
+        "DELETE",
+        "/account",
+        headers=headers,
+        json={"password": PASSWORD},
+    )
+    assert deleted.status_code == 204
+    db_session.expire_all()
+    assert db_session.get(User, session["user_id"]) is None
+    assert (await client.get("/account", headers=headers)).status_code == 401

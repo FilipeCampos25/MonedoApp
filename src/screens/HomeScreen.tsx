@@ -26,7 +26,7 @@ import type { Dashboard, Task } from "../types/api";
 
 const screenWidth = Dimensions.get("window").width;
 
-export default function HomeScreen() {
+export default function HomeScreen({ navigation }: { navigation?: any }) {
   const { signOut, token, user } = useAuth();
   const [dashboard, setDashboard] = useState<Dashboard | null>(null);
   const [tasks, setTasks] = useState<Task[]>([]);
@@ -123,9 +123,22 @@ export default function HomeScreen() {
             <Text style={styles.title}>Meus Estudos</Text>
             <Text style={styles.welcome}>Olá, {user?.username}</Text>
           </View>
-          <Pressable accessibilityLabel="Sair" onPress={() => void signOut()}>
-            <Ionicons name="log-out-outline" size={28} color="#2563EB" />
-          </Pressable>
+          <View style={styles.headerActions}>
+            <Pressable
+              accessibilityLabel="Acessar conta"
+              onPress={() => navigation?.getParent()?.navigate("Account")}
+              style={styles.headerButton}
+            >
+              <Ionicons name="person-circle-outline" size={30} color="#2563EB" />
+            </Pressable>
+            <Pressable
+              accessibilityLabel="Sair"
+              onPress={() => void signOut()}
+              style={styles.headerButton}
+            >
+              <Ionicons name="log-out-outline" size={28} color="#2563EB" />
+            </Pressable>
+          </View>
         </View>
 
         {error ? <Text style={styles.error}>{error}</Text> : null}
@@ -264,6 +277,8 @@ const chartConfig = {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: "#F5F7FB", paddingHorizontal: 16 },
   header: { alignItems: "center", flexDirection: "row", justifyContent: "space-between", marginVertical: 14 },
+  headerActions: { alignItems: "center", flexDirection: "row", gap: 4 },
+  headerButton: { padding: 5 },
   title: { color: "#2563EB", fontSize: 24, fontWeight: "900" },
   welcome: { color: "#64748B", marginTop: 2 },
   row: { flexDirection: "row", justifyContent: "space-between", marginBottom: 18 },
